@@ -1,6 +1,7 @@
 // Small modal overlays: pause menu, help, reconnecting and click to play.
 
-import { btn, el } from './dom';
+import { OPERATORS, weaponDef } from '@holdfast/shared';
+import { btn, clear, el } from './dom';
 
 export interface PauseHooks {
   onResume(): void;
@@ -8,6 +9,7 @@ export interface PauseHooks {
   onHelp(): void;
   onLeave(): void;
   onDebug(cmd: string): void;
+  onPick(op: number, primary: number): void;
 }
 
 export class PauseMenu {
@@ -23,6 +25,28 @@ export class PauseMenu {
     btn('HOW TO PLAY', 'btn', hooks.onHelp, card);
     this.practice = el('div', 'practice-tools', undefined, card);
     el('div', 'label', 'PRACTICE TOOLS', this.practice);
+    const opRow = el('div', 'menu-row', undefined, this.practice);
+    const opSel = el('select', 'input', undefined, opRow);
+    for (const op of OPERATORS) {
+      const o = el('option', '', `${op.name} (${op.side === 'attack' ? 'attack' : 'defend'}) - ${op.gadgetName}`, opSel);
+      o.value = String(op.id);
+    }
+    const wSel = el('select', 'input', undefined, opRow);
+    const fillWeapons = (): void => {
+      clear(wSel);
+      const def = OPERATORS[Number(opSel.value)];
+      for (const w of def ? def.primaries : []) {
+        const o = el('option', '', weaponDef(w).name, wSel);
+        o.value = String(w);
+      }
+    };
+    fillWeapons();
+    const send = (): void => hooks.onPick(Number(opSel.value), Number(wSel.value));
+    opSel.addEventListener('change', () => {
+      fillWeapons();
+      send();
+    });
+    wSel.addEventListener('change', send);
     const row = el('div', 'menu-row', undefined, this.practice);
     btn('Reset world', 'btn small', () => hooks.onDebug('reset'), row);
     btn('Refill', 'btn small', () => hooks.onDebug('refill'), row);

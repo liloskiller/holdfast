@@ -102,6 +102,13 @@ export class Renderer {
     return this.width / this.height;
   }
 
+  /** Vertical field of view for a horizontal one at the current aspect ratio. */
+  verticalFov(horizontalDeg: number): number {
+    const h = (horizontalDeg * Math.PI) / 360;
+    return (2 * Math.atan(Math.tan(h) / Math.max(1, this.aspect > 1 ? Math.min(this.aspect, 2.4) : this.aspect))) * (180 / Math.PI);
+  }
+
+  /** Set the vertical field of view in degrees. */
   setFov(fov: number): void {
     if (Math.abs(fov - this.fovCurrent) < 0.01) return;
     this.fovCurrent = fov;

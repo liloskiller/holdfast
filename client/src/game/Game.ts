@@ -47,6 +47,7 @@ interface PingMarker {
 }
 
 const FAR_SHOT = 160;
+const PROMPTS = ['', 'E  Open door', 'E  Close door', 'E  Vault', 'Hold E  Reinforce wall', 'Hold E  Barricade', 'F  Detonate charge'];
 const EYE_SMOOTH = 12;
 
 export class Game {
@@ -128,6 +129,7 @@ export class Game {
       this.renderer.scene.add(m);
       this.senseMeshes.push(m);
     }
+    this.recountTeams();
     this.setPhase(joined.phase, false);
     this.lastFrame = performance.now();
   }
@@ -173,12 +175,33 @@ export class Game {
 
   onRoom(room: RoomState): void {
     this.room = room;
+    this.recountTeams();
+  }
+
+  private recountTeams(): void {
+    const mine = this.myTeam;
+    let ft = 0, fe = 0, fa = 0, ea = 0;
+    for (const p of this.room.players) {
+      if (!p.connected) continue;
+      if (p.team === mine) {
+        ft++;
+        if (p.alive) fa++;
+      } else {
+        fe++;
+        if (p.alive) ea++;
+      }
+    }
+    this.friendTotal = ft;
+    this.foeTotal = fe;
+    this.friendAlive = fa;
+    this.foeAlive = ea;
   }
 
   setPhase(next: PhaseInfo, reset: boolean, worldDiff?: import('@holdfast/shared').WorldDiff): void {
     const prev = this.phase;
     this.phase = next;
     this.attackerTeam = next.attackerTeam;
+    this.recountTeams();
     if (reset) {
       this.world.reset();
       if (worldDiff) this.world.applyDiff(worldDiff);
@@ -205,7 +228,8 @@ export class Game {
     if (s.world) this.world.applyDiff(s.world);
     const wasReady = this.pred.ready;
     const err = this.pred.reconcile(s.self, s.ack, this.world);
-    if (!wasReady || err > 3) {
+    void err;
+    if (!wasReady) {
       this.yaw = this.pred.state.yaw;
       this.pitch = this.pred.state.pitch;
     }
@@ -422,7 +446,7 @@ export class Game {
     const s = this.pred.state;
     const touch = this.host.isTouchActive();
     const base = touch ? 0.0042 : 0.0022;
-    const fovScale = this.renderer.fovCurrent / settings.fov;
+    const fovScale = this.renderer.fovCurrent / this.baseVFov();
     const k = base * settings.sens * fovScale;
     this.yaw = wrapAngle(this.yaw - dx * k);
     this.pitch = clamp(this.pitch - dy * k * (settings.invertY ? -1 : 1), -PLAYER.pitchLimit, PLAYER.pitchLimit);
@@ -638,7 +662,7 @@ export class Game {
       viewYaw = Math.atan2(-(b.cx - ex), -(b.cz - ez));
       viewPitch = -0.45;
       fp = false;
-      r.setFov(60);
+      r.setFov(this.baseVFov() * 0.85);
     } else if (!s.alive) {
       // spectate a teammate, or hover at the place of death
       const specId = this.extra.spec || this.spectateId;
@@ -660,14 +684,14 @@ export class Game {
       cam.position.set(ex, ey, ez);
       cam.rotation.set(viewPitch, viewYaw, 0);
       fp = false;
-      r.setFov(settings.fov);
+      r.setFov(this.baseVFov());
     } else if (s.dCtl) {
       // drone view
       ex = s.dx; ey = s.dy; ez = s.dz;
       cam.position.set(ex, ey, ez);
       cam.rotation.set(this.pitch, this.yaw, 0);
       fp = false;
-      r.setFov(Math.min(100, settings.fov + 8));
+      r.setFov(this.baseVFov() * 1.12);
     } else if (s.cam && this.extra.camIdx >= 0) {
       const camEnt = this.latestEntities.filter((e) => e.kind === EntityKind.CAMERA && e.owner === this.myId)[this.extra.camIdx];
       if (camEnt) {
@@ -678,7 +702,7 @@ export class Game {
         viewPitch = camEnt.b;
       }
       fp = false;
-      r.setFov(95);
+      r.setFov(this.baseVFov() * 1.2);
     } else {
       const a = this.acc / SIM_DT;
       const p = this.pred.prev;
@@ -699,8 +723,9 @@ export class Game {
       // fov and ads
       const def = activeWeapon(s);
       this.adsT += ((s.ads ? 1 : 0) - this.adsT) * Math.min(1, dt * 12);
-      const adsFov = def.adsFov * (settings.fov / 80);
-      const fov = lerp(settings.fov + (s.sprint ? 4 : 0), adsFov, this.adsT);
+      const base = this.baseVFov();
+      const adsFov = def.adsFov * (base / 59);
+      const fov = lerp(base * (s.sprint ? 1.06 : 1), adsFov, this.adsT);
       r.setFov(fov);
       if (s.vault > 0) cam.rotation.z = Math.sin((1 - s.vault / PLAYER.vaultTime) * Math.PI) * 0.05;
     }
@@ -744,6 +769,16 @@ export class Game {
     void now;
   }
 
+  private seenScratch = new Set<number>();
+  private friendTotal = 0;
+  private foeTotal = 0;
+  private friendAlive = 0;
+  private foeAlive = 0;
+  private markerPool: CompassMarker[] = [];
+  private baseVFov(): number {
+    return this.renderer.verticalFov(settings.fov);
+  }
+
   private lastLookDX = 0;
   private lastLookDY = 0;
   noteLook(dx: number, dy: number): void {
@@ -753,7 +788,8 @@ export class Game {
 
   private updateRemotePlayers(dt: number, renderTime: number): void {
     const present = this.interp.presentPlayers;
-    const seen = new Set<number>();
+    const seen = this.seenScratch;
+    seen.clear();
     for (const id of present) {
       let ok = this.interp.samplePlayer(id, renderTime, this.pose);
       if (!ok) continue;
@@ -842,16 +878,12 @@ export class Game {
     const mine = this.myTeam;
     m.scoreFriend = ph.scores[mine === 0 ? 0 : 1];
     m.scoreFoe = ph.scores[mine === 0 ? 1 : 0];
-    const players = this.room.players;
-    const friends = players.filter((p) => p.team === mine && p.connected);
-    const foes = players.filter((p) => p.team !== mine && p.connected);
-    m.friendTotal = this.sandbox ? 0 : friends.length;
-    m.foeTotal = this.sandbox ? 0 : foes.length;
-    m.friendAlive = friends.filter((p) => p.alive).length;
-    m.foeAlive = foes.filter((p) => p.alive).length;
+    m.friendTotal = this.sandbox ? 0 : this.friendTotal;
+    m.foeTotal = this.sandbox ? 0 : this.foeTotal;
+    m.friendAlive = this.friendAlive;
+    m.foeAlive = this.foeAlive;
 
-    const prompts = ['', 'E  Open door', 'E  Close door', 'E  Vault', 'Hold E  Reinforce wall', 'Hold E  Barricade', 'F  Detonate charge'];
-    m.prompt = s.alive && !s.dCtl ? (prompts[this.extra.prompt] ?? '') : '';
+    m.prompt = s.alive && !s.dCtl ? (PROMPTS[this.extra.prompt] ?? '') : '';
     m.actProgress = this.extra.act ? this.extra.actP : 0;
     m.captureProgress = ph.phase === PhaseId.ACTION ? this.extra.cap : 0;
     m.crosshair = 5 + (s.ads ? 0 : 5) + clamp(Math.hypot(s.vx, s.vz) * 1.6, 0, 9) + Math.abs(this.recoilPitch) * 420;
@@ -866,22 +898,33 @@ export class Game {
     m.spectating = !s.alive && specId ? this.playerName(specId) : '';
 
     // compass
-    const markers: CompassMarker[] = [];
     const now = performance.now();
-    const bearing = (x: number, z: number): number => wrapAngle(viewYaw - Math.atan2(-(x - ex), -(z - ez)));
+    let mc = 0;
+    const put = (x: number, z: number, kind: CompassMarker['kind'], alpha: number): void => {
+      let mk = this.markerPool[mc];
+      if (!mk) {
+        mk = { rel: 0, kind, alpha };
+        this.markerPool[mc] = mk;
+      }
+      mc++;
+      mk.rel = wrapAngle(viewYaw - Math.atan2(-(x - ex), -(z - ez)));
+      mk.kind = kind;
+      mk.alpha = alpha;
+    };
     for (const [id, pose] of this.lastPoses) {
       const team = this.playerTeam(id);
-      if (team === mine) markers.push({ rel: bearing(pose.x, pose.z), kind: 'mate', alpha: 1 });
-      else if (this.tagged.has(id)) markers.push({ rel: bearing(pose.x, pose.z), kind: 'tag', alpha: 1 });
-      else if (this.sandbox) markers.push({ rel: bearing(pose.x, pose.z), kind: 'enemy', alpha: 0.9 });
+      if (team === mine) put(pose.x, pose.z, 'mate', 1);
+      else if (this.tagged.has(id)) put(pose.x, pose.z, 'tag', 1);
+      else if (this.sandbox) put(pose.x, pose.z, 'enemy', 0.9);
     }
-    this.pings = this.pings.filter((p) => now - p.born < 1800);
-    for (const p of this.pings) markers.push({ rel: bearing(p.x, p.z), kind: 'ping', alpha: 1 - (now - p.born) / 1800 });
+    if (this.pings.length) this.pings = this.pings.filter((p) => now - p.born < 1800);
+    for (const p of this.pings) put(p.x, p.z, 'ping', 1 - (now - p.born) / 1800);
     const site = this.world.map.objectives[ph.objective];
     if (site && (ph.phase === PhaseId.PREP || ph.phase === PhaseId.ACTION)) {
-      markers.push({ rel: bearing((site.minX + site.maxX) / 2, (site.minZ + site.maxZ) / 2), kind: 'obj', alpha: 1 });
+      put((site.minX + site.maxX) / 2, (site.minZ + site.maxZ) / 2, 'obj', 1);
     }
-    m.markers = markers;
+    m.markers = this.markerPool;
+    m.markerCount = mc;
 
     if (settings.showFps || new URLSearchParams(location.search).has('debug')) {
       const i = this.renderer.info();
@@ -897,7 +940,7 @@ export class Game {
         `calls ${i.calls}  tris ${i.triangles}\n` +
         `ping ${Math.round(this.host.clock.rtt)} ms  snaps ${this.snapRate.toFixed(1)}/s  interp ${Math.round(this.interp.delayMs)} ms\n` +
         `pred err ${(this.pred.lastError * 100).toFixed(1)} cm  pending ${this.pred.pending.length}\n` +
-        `players ${this.playerViews.size}  ents ${this.latestEntities.length}` + (mem ? `  heap ${(mem.usedJSHeapSize / 1048576).toFixed(0)} MB` : '');
+        `players ${this.playerViews.size} (tagged ${this.tagged.size})  ents ${this.latestEntities.length}` + (mem ? `  heap ${(mem.usedJSHeapSize / 1048576).toFixed(0)} MB` : '');
     } else {
       m.debug = '';
     }

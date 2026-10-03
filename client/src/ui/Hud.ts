@@ -46,6 +46,7 @@ export interface HudModel {
   sensor: number;
   spectating: string;
   markers: CompassMarker[];
+  markerCount: number;
   hideCrosshair: boolean;
   debug: string;
 }
@@ -56,7 +57,7 @@ export function emptyModel(): HudModel {
     gadgetLabel: '', gadgetUses: 0, gadgetCd: 0, reinf: 0, showReinf: false, timer: '', timerHot: false,
     phaseLabel: '', scoreFriend: 0, scoreFoe: 0, friendAlive: 0, foeAlive: 0, friendTotal: 0, foeTotal: 0,
     role: 'free', prompt: '', actProgress: 0, captureProgress: 0, crosshair: 6, ads: false, inDrone: false,
-    droneHp: 0, jammed: false, inCamera: false, charges: 0, sensor: 0, spectating: '', markers: [],
+    droneHp: 0, jammed: false, inCamera: false, charges: 0, sensor: 0, spectating: '', markers: [], markerCount: 0,
     hideCrosshair: false, debug: '',
   };
 }
@@ -152,6 +153,7 @@ export class Hud {
     const drone = el('div', 'drone-overlay hidden', undefined, root);
     this.n['drone'] = drone;
     el('div', 'drone-rec', 'REC  DRONE', drone);
+    el('div', 'drone-reticle', undefined, drone);
     this.n['droneHp'] = el('div', 'drone-hp', '', drone);
     this.n['droneStatic'] = el('div', 'drone-static hidden', 'SIGNAL JAMMED', drone);
     const cam = el('div', 'cam-overlay hidden', undefined, root);
@@ -227,7 +229,7 @@ export class Hud {
     setText(n['debug'] as HTMLElement, m.debug);
     setClass(n['debug'] as HTMLElement, 'hidden', m.debug === '');
 
-    this.updateMarkers(m.markers);
+    this.updateMarkers(m.markers, m.markerCount);
     this.lastHp = m.hp;
   }
 
@@ -239,11 +241,11 @@ export class Hud {
     }
   }
 
-  private updateMarkers(list: CompassMarker[]): void {
+  private updateMarkers(list: CompassMarker[], count: number): void {
     const half = Math.PI / 2;
     for (let i = 0; i < this.markers.length; i++) {
       const node = this.markers[i] as HTMLElement;
-      const m = list[i];
+      const m = i < count ? list[i] : undefined;
       if (!m || Math.abs(m.rel) > half) {
         if (!node.classList.contains('hidden')) node.classList.add('hidden');
         continue;

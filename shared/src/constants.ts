@@ -137,7 +137,7 @@ export interface WeaponDef {
   minDamageMul: number;
   recoilPitch: number; // radians of camera kick per shot (cosmetic)
   recoilYaw: number;
-  adsFov: number; // degrees
+  adsFov: number; // vertical degrees when aiming (hip is about 59 at the default 90 degree horizontal FOV)
   adsMoveMul: number;
   color: number;
   length: number; // viewmodel length
@@ -148,31 +148,31 @@ export const WEAPONS: readonly WeaponDef[] = [
     id: WeaponId.CARBINE, name: 'Carbine', role: 'Rifle', damage: 27, pellets: 1, headMul: 2.5,
     rpm: 650, mag: 30, reserveMags: 3, reload: 2.3, perShell: false, auto: true,
     spreadHip: 1.8, spreadAds: 0.5, wallDamage: 12, falloffStart: 30, falloffEnd: 80, minDamageMul: 0.6,
-    recoilPitch: 0.011, recoilYaw: 0.004, adsFov: 52, adsMoveMul: 0.6, color: 0x3a3f46, length: 0.62,
+    recoilPitch: 0.011, recoilYaw: 0.004, adsFov: 44, adsMoveMul: 0.6, color: 0x3a3f46, length: 0.62,
   },
   {
     id: WeaponId.RATTLER, name: 'Rattler', role: 'SMG', damage: 20, pellets: 1, headMul: 2.2,
     rpm: 850, mag: 35, reserveMags: 3, reload: 2.0, perShell: false, auto: true,
     spreadHip: 2.2, spreadAds: 0.8, wallDamage: 8, falloffStart: 15, falloffEnd: 50, minDamageMul: 0.5,
-    recoilPitch: 0.008, recoilYaw: 0.005, adsFov: 58, adsMoveMul: 0.72, color: 0x4a4540, length: 0.5,
+    recoilPitch: 0.008, recoilYaw: 0.005, adsFov: 50, adsMoveMul: 0.72, color: 0x4a4540, length: 0.5,
   },
   {
     id: WeaponId.HAMMER, name: 'Hammer', role: 'Shotgun', damage: 11, pellets: 8, headMul: 1.5,
     rpm: 70, mag: 6, reserveMags: 4, reload: 0.6, perShell: true, auto: false,
     spreadHip: 6, spreadAds: 4, wallDamage: 6, falloffStart: 8, falloffEnd: 25, minDamageMul: 0.25,
-    recoilPitch: 0.035, recoilYaw: 0.006, adsFov: 62, adsMoveMul: 0.75, color: 0x5a4a38, length: 0.7,
+    recoilPitch: 0.035, recoilYaw: 0.006, adsFov: 54, adsMoveMul: 0.75, color: 0x5a4a38, length: 0.7,
   },
   {
     id: WeaponId.MARKSMAN, name: 'Marksman', role: 'DMR', damage: 55, pellets: 1, headMul: 2.5,
     rpm: 180, mag: 10, reserveMags: 3, reload: 2.8, perShell: false, auto: false,
     spreadHip: 1.0, spreadAds: 0.1, wallDamage: 25, falloffStart: 50, falloffEnd: 120, minDamageMul: 0.7,
-    recoilPitch: 0.022, recoilYaw: 0.003, adsFov: 38, adsMoveMul: 0.5, color: 0x2f3a33, length: 0.78,
+    recoilPitch: 0.022, recoilYaw: 0.003, adsFov: 26, adsMoveMul: 0.5, color: 0x2f3a33, length: 0.78,
   },
   {
     id: WeaponId.SIDEARM, name: 'Sidearm', role: 'Pistol', damage: 38, pellets: 1, headMul: 3.0,
     rpm: 400, mag: 12, reserveMags: 4, reload: 1.6, perShell: false, auto: false,
     spreadHip: 1.5, spreadAds: 0.5, wallDamage: 6, falloffStart: 15, falloffEnd: 45, minDamageMul: 0.5,
-    recoilPitch: 0.014, recoilYaw: 0.003, adsFov: 62, adsMoveMul: 0.85, color: 0x30343a, length: 0.28,
+    recoilPitch: 0.014, recoilYaw: 0.003, adsFov: 54, adsMoveMul: 0.85, color: 0x30343a, length: 0.28,
   },
 ];
 

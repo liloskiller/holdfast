@@ -62,6 +62,7 @@ export class App {
   private settingsReturn: 'menu' | 'pause' = 'menu';
   private wakeLock: { release(): Promise<void> } | null = null;
   private scoreHeld = false;
+  private lastSlot = 0;
 
   constructor(root: HTMLElement) {
     loadSettings();
@@ -121,6 +122,7 @@ export class App {
       onHelp: () => this.openHelp(),
       onLeave: () => this.leave(),
       onDebug: (cmd) => this.send({ t: 'DEBUG', cmd }),
+      onPick: (op, primary) => this.send({ t: 'PICK_OPERATOR', op, primary: primary as 0 }),
     });
     this.status = new StatusOverlay(this.uiRoot);
     this.ctp = new ClickToPlay(this.uiRoot, () => this.resume());
@@ -137,7 +139,12 @@ export class App {
     });
 
     const code = new URLSearchParams(location.search).get('room');
+    const lastCode = sessionGet('hf.code');
     if (code) this.menu.setCode(code.toUpperCase().slice(0, 4));
+    else if (lastCode) {
+      this.menu.setCode(lastCode);
+      this.menu.setError('Tap JOIN to rejoin your last room');
+    }
     this.menu.show(true);
     this.registerGlobalGestures();
     requestAnimationFrame((t) => this.loop(t));
@@ -240,6 +247,17 @@ export class App {
     this.tryFullscreen();
     this.practice = true;
     this.intentional = false;
+    // ?netpractice runs the sandbox on the real server instead (used to test netcode under ?lag=...)
+    if (new URLSearchParams(location.search).has('netpractice')) {
+      try {
+        const ws = await WsConnection.open();
+        this.attachTransport(ws);
+        ws.send({ t: 'CREATE_ROOM', name: this.name(), sandbox: true });
+      } catch (e) {
+        this.menu.setError((e as Error).message || 'Could not connect');
+      }
+      return;
+    }
     const conn = new LoopbackConnection(safehouseText);
     this.attachTransport(conn);
     conn.send({ t: 'CREATE_ROOM', name: this.name(), sandbox: true });
@@ -595,6 +613,8 @@ export class App {
       const left = Math.max(0, (ph.endsAt - this.clock.now()) / 1000);
       this.opsel.setTimer(Math.ceil(left) + 's');
     }
+    if (this.game && !this.game.predicted.alive && this.input.slot !== this.lastSlot) this.game.spectate(1);
+    this.lastSlot = this.input.slot;
     if (this.game && this.touch.isActive) {
       const st = this.game.predicted;
       this.touch.setContext(st.dCtl && st.alive, this.game.extra.camCount, this.practice || this.game.role === 'attack');

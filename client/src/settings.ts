@@ -5,7 +5,7 @@ export type Quality = 'low' | 'medium' | 'high';
 export interface Settings {
   name: string;
   sens: number; // 0.2 .. 3
-  fov: number; // 60 .. 100
+  fov: number; // horizontal degrees, 70 .. 110
   invertY: boolean;
   quality: Quality;
   aimAssist: boolean;
@@ -32,7 +32,7 @@ export function defaultSettings(): Settings {
   return {
     name: '',
     sens: touch ? 1.0 : 1.0,
-    fov: 80,
+    fov: 90,
     invertY: false,
     quality: touch ? 'medium' : 'high',
     aimAssist: touch,

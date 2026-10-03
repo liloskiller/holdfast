@@ -57,7 +57,7 @@ export class SettingsScreen {
     clear(this.body);
     el('div', 'sgroup', 'LOOK AND AIM', this.body);
     this.slider('Look sensitivity', 0.2, 3, 0.05, () => settings.sens, (v) => (settings.sens = v), (v) => v.toFixed(2));
-    this.slider('Field of view', 60, 105, 1, () => settings.fov, (v) => (settings.fov = v), (v) => String(Math.round(v)));
+    this.slider('Field of view (horizontal)', 70, 110, 1, () => settings.fov, (v) => (settings.fov = v), (v) => String(Math.round(v)));
     this.toggle('Invert Y', () => settings.invertY, (v) => { settings.invertY = v; });
     this.toggle('Toggle aim (instead of hold)', () => settings.adsToggle, (v) => { settings.adsToggle = v; });
     this.toggle('Aim assist (touch)', () => settings.aimAssist, (v) => { settings.aimAssist = v; });

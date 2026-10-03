@@ -35,6 +35,8 @@ function droneModel(color: number): { g: THREE.Group; rotors: THREE.Object3D[] }
 export class EntityViews {
   private views = new Map<number, View>();
   private time = 0;
+  private seen = new Set<number>();
+  private pose: Pose = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0, flags: 0, weapon: 0, hp: 0, a: 0 };
 
   constructor(private scene: THREE.Scene, private attackerTeam: () => number) {}
 
@@ -120,8 +122,9 @@ export class EntityViews {
   /** Sync the set of entities with the latest snapshot, then position them from interpolated poses. */
   sync(entities: EntitySnap[], sample: (id: number, out: Pose) => boolean, dt: number, isPiloting: (ownerId: number) => boolean): void {
     this.time += dt;
-    const pose: Pose = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0, flags: 0, weapon: 0, hp: 0, a: 0 };
-    const seen = new Set<number>();
+    const pose = this.pose;
+    const seen = this.seen;
+    seen.clear();
     for (const e of entities) {
       seen.add(e.id);
       let v = this.views.get(e.id);
