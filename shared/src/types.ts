@@ -102,6 +102,8 @@ export interface PlayerState {
   dvy: number;
   dvz: number;
   dhp: number;
+  /** Viewing a security camera: body is frozen. Set by the server. */
+  cam: boolean;
   // modifiers (set by the server)
   slow: number; // seconds of slow remaining
   confined: boolean; // attackers during prep
@@ -111,7 +113,7 @@ export interface PlayerState {
 }
 
 const BOOL_KEYS: readonly (keyof PlayerState)[] = [
-  'crouch', 'onGround', 'sprint', 'ads', 'reloading', 'dDeployed', 'dCtl', 'confined', 'alive',
+  'crouch', 'onGround', 'sprint', 'ads', 'reloading', 'dDeployed', 'dCtl', 'cam', 'confined', 'alive',
 ];
 
 const STATE_KEYS: readonly (keyof PlayerState)[] = [
@@ -119,7 +121,7 @@ const STATE_KEYS: readonly (keyof PlayerState)[] = [
   'vault', 'vfx', 'vfy', 'vfz', 'vtx', 'vty', 'vtz',
   'slot', 'w0', 'w1', 'ammo0', 'ammo1', 'res0', 'res1', 'reloading', 'reload', 'cooldown', 'shotIdx',
   'useHeld', 'prevButtons',
-  'dDeployed', 'dCtl', 'dx', 'dy', 'dz', 'dvx', 'dvy', 'dvz', 'dhp',
+  'dDeployed', 'dCtl', 'dx', 'dy', 'dz', 'dvx', 'dvy', 'dvz', 'dhp', 'cam',
   'slow', 'confined', 'spdMul', 'alive', 'hp',
 ];
 
@@ -133,7 +135,7 @@ export function createPlayerState(): PlayerState {
     slot: 0, w0: 0, w1: 4, ammo0: 0, ammo1: 0, res0: 0, res1: 0,
     reloading: false, reload: 0, cooldown: 0, shotIdx: 0,
     useHeld: 0, prevButtons: 0,
-    dDeployed: false, dCtl: false, dx: 0, dy: 0, dz: 0, dvx: 0, dvy: 0, dvz: 0, dhp: 0,
+    dDeployed: false, dCtl: false, dx: 0, dy: 0, dz: 0, dvx: 0, dvy: 0, dvz: 0, dhp: 0, cam: false,
     slow: 0, confined: false, spdMul: 1, alive: true, hp: PLAYER.maxHp,
   };
 }
@@ -318,6 +320,8 @@ export interface SelfExtra {
   sensorT: number;
   prompt: number; // contextual interact prompt id
   charges: number; // armed breach charges
+  cap: number; // objective capture progress 0..1
+  jam: number; // 1 when jammed (static on the drone feed)
 }
 
 export interface Snapshot {
@@ -364,7 +368,7 @@ export type ServerMsg =
       serverTime: number;
     }
   | { t: 'ROOM'; room: RoomState }
-  | { t: 'PHASE'; phase: PhaseInfo; world?: WorldDiff }
+  | { t: 'PHASE'; phase: PhaseInfo; reset?: boolean; world?: WorldDiff }
   | { t: 'SNAP'; snap: Snapshot }
   | { t: 'CHAT'; from: string; team: number; text: string }
   | { t: 'PONG'; c: number; s: number }

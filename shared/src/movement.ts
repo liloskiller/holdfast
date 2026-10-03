@@ -18,6 +18,8 @@ export interface StepOut {
   vaultStarted: boolean;
   tapUse: boolean;
   droneToggled: boolean;
+  /** Raw DRONE press edge (the server decides whether to deploy a drone). */
+  dronePressed: boolean;
   /** True for one step when the INTERACT button was released after a tap. */
   meleePressed: boolean;
   gadgetPressed: boolean;
@@ -28,7 +30,7 @@ export interface StepOut {
 export function makeStepOut(): StepOut {
   return {
     fired: false, shotIdx: 0, weapon: 0, reloadStarted: false, switched: false, vaultStarted: false,
-    tapUse: false, droneToggled: false, meleePressed: false, gadgetPressed: false, firePressed: false,
+    tapUse: false, droneToggled: false, dronePressed: false, meleePressed: false, gadgetPressed: false, firePressed: false,
     cameraPressed: false,
   };
 }
@@ -142,9 +144,8 @@ function stepDrone(s: PlayerState, cmd: InputCmd, world: World, dt: number): voi
   s.dvz = approachTo(s.dvz, tz, a);
 
   // axis by axis clip
-  const mv = [s.dvx * dt, s.dvy * dt, s.dvz * dt];
   for (let ax = 0; ax < 3; ax++) {
-    const d = mv[ax] as number;
+    const d = (ax === 0 ? s.dvx : ax === 1 ? s.dvy : s.dvz) * dt;
     if (d === 0) continue;
     const minX = s.dx - r, maxX = s.dx + r, minY = s.dy - r, maxY = s.dy + r, minZ = s.dz - r, maxZ = s.dz + r;
     const n = world.queryBoxes(minX - Math.abs(d), minY - Math.abs(d), minZ - Math.abs(d), maxX + Math.abs(d), maxY + Math.abs(d), maxZ + Math.abs(d), buf);
@@ -168,6 +169,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
   out.vaultStarted = false;
   out.tapUse = false;
   out.droneToggled = false;
+  out.dronePressed = false;
   out.meleePressed = false;
   out.gadgetPressed = false;
   out.firePressed = false;
@@ -209,6 +211,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     s.useHeld = 0;
   }
 
+  out.dronePressed = (pressed & Btn.DRONE) !== 0;
   // Drone toggle (deploying a fresh drone is decided by the server)
   if (pressed & Btn.DRONE && s.dDeployed && s.vault <= 0) {
     s.dCtl = !s.dCtl;
@@ -222,6 +225,15 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     s.sprint = false;
     s.ads = false;
     stepDrone(s, cmd, world, dt);
+    snapOrFall(s, world, s.onGround, dt);
+    return;
+  }
+
+  if (s.cam) {
+    s.vx = 0;
+    s.vz = 0;
+    s.sprint = false;
+    s.ads = false;
     snapOrFall(s, world, s.onGround, dt);
     return;
   }

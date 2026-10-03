@@ -9,13 +9,13 @@ import { DEFAULT_SETTINGS, type RoomSettings } from './constants';
 
 const EXTRA_KEYS: readonly (keyof SelfExtra)[] = [
   'reinf', 'gadget', 'gadgetCd', 'act', 'actP', 'droneCd', 'tagCd', 'spec', 'op', 'camIdx', 'camCount',
-  'sensorT', 'prompt', 'charges',
+  'sensorT', 'prompt', 'charges', 'cap', 'jam',
 ];
 
 export function makeExtra(): SelfExtra {
   return {
     reinf: 0, gadget: 0, gadgetCd: 0, act: 0, actP: 0, droneCd: 0, tagCd: 0, spec: 0, op: 0,
-    camIdx: -1, camCount: 0, sensorT: 0, prompt: 0, charges: 0,
+    camIdx: -1, camCount: 0, sensorT: 0, prompt: 0, charges: 0, cap: 0, jam: 0,
   };
 }
 
