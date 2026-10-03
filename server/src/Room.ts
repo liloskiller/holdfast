@@ -2,15 +2,15 @@
 // Platform neutral: no Node imports, so it also runs in the browser for Practice mode.
 
 import {
-  DEFAULT_SETTINGS, GameMode, NET, OPERATORS, PhaseId, SIM_DT, SNAPSHOT_HZ, WeaponId, operatorDef,
-  encodeServer, parseMap, resetLoadout, World, quantizeCmd,
+  DEFAULT_SETTINGS, GameMode, NET, PhaseId, SIM_DT, SNAPSHOT_HZ,
+  encodeServer, parseMap, World, quantizeCmd,
   type ClientMsg, type GameEvent, type InputCmd, type MapData, type PhaseInfo, type RoomSettings,
   type RoomState, type ServerMsg, type SoundKind,
 } from '@holdfast/shared';
 import { Player, type Entity } from './Player';
 import type { Conn } from './transport';
 import { processInputs } from './systems/movementSystem';
-import { startMatch, updateRound, onPlayerLeft, applyPick, ensureBalanced, sandboxStart, spawnRoundPlayer } from './systems/roundSystem';
+import { startMatch, updateRound, onPlayerLeft, applyPick, sandboxStart, spawnRoundPlayer } from './systems/roundSystem';
 import { updateGadgets } from './systems/gadgetSystem';
 import { buildSnapshot } from './systems/visibilitySystem';
 import { debugCommand } from './systems/destructionSystem';
@@ -45,6 +45,7 @@ export interface RoomOptions {
 }
 
 const TICK_MS = SIM_DT * 1000;
+const DISCONNECT_GRACE_MS = 3000;
 
 export class Room {
   code: string;
@@ -269,15 +270,8 @@ export class Room {
       this.markRoomDirty();
       return;
     }
-    // a disconnected player is out for the round
-    if (p.state.alive) {
-      p.state.alive = false;
-      p.state.hp = 0;
-      p.state.dCtl = false;
-    }
+    // After a short grace period (see step) a disconnected player counts as dead for the round.
     this.migrateHost();
-    onPlayerLeft(this, p);
-    if (this.sandbox) this.players.delete(p.id);
     this.markRoomDirty();
   }
 
@@ -430,9 +424,20 @@ export class Room {
       this.lastRoomSend = this.time;
       this.broadcast({ t: 'ROOM', room: this.roomState() });
     }
-    // drop players who stayed disconnected too long
     for (const p of [...this.players.values()]) {
-      if (!p.isDummy && !p.connected && this.time - p.disconnectedAt > NET.reconnectMs) this.removePlayer(p);
+      if (p.isDummy || p.connected) continue;
+      const away = this.time - p.disconnectedAt;
+      // a blip shorter than the grace period keeps the player alive, longer means out for the round
+      if (p.state.alive && away > DISCONNECT_GRACE_MS) {
+        p.state.alive = false;
+        p.state.hp = 0;
+        p.state.dCtl = false;
+        p.state.dDeployed = false;
+        onPlayerLeft(this, p);
+        this.markRoomDirty();
+      }
+      // the slot is released after the reconnect window
+      if (away > NET.reconnectMs) this.removePlayer(p);
     }
     if (this.connectedHumans().length === 0 && this.emptySince === 0) this.emptySince = this.time;
   }
@@ -454,20 +459,5 @@ export class Room {
   close(): void {
     this.stopLoop();
     for (const p of this.players.values()) p.conn?.close();
-  }
-
-  get totalOperators(): number {
-    return OPERATORS.length;
-  }
-
-  loadoutFor(p: Player): void {
-    const op = operatorDef(p.op);
-    const primary = op.primaries.includes(p.primary as WeaponId) ? p.primary : (op.primaries[0] as number);
-    p.primary = primary;
-    resetLoadout(p.state, primary);
-  }
-
-  balanceTeams(): void {
-    ensureBalanced(this);
   }
 }

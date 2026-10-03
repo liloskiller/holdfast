@@ -1,14 +1,13 @@
 // Round state machine: lobby, operator select, prep, action, round end, match end.
 
 import {
-  DRONE, GameMode, PhaseId, operatorDef, OPERATORS, defaultOperator, resetLoadout, PLAYER, FLOOR_H,
+  GameMode, PhaseId, operatorDef, OPERATORS, defaultOperator, resetLoadout, PLAYER, FLOOR_H,
   type SpawnPoint,
 } from '@holdfast/shared';
 import { Player } from '../Player';
 import type { Room } from '../Room';
 import { clearEntities, deployDronesForPrep } from './gadgetSystem';
 
-const ROUND_END_DELAY_MS = 0;
 const MATCH_END_MS = 15000;
 
 function sideOf(room: Room, p: Player): 'attack' | 'defend' {
@@ -125,7 +124,6 @@ function endRound(room: Room, winner: number, reason: string): void {
   setPhase(room, PhaseId.ROUND_END, room.settings.roundEndTime);
   room.matchOver = matchOver;
   room.broadcastPhase();
-  void ROUND_END_DELAY_MS;
 }
 
 function endMatch(room: Room): void {
@@ -316,7 +314,6 @@ export function sandboxStart(room: Room): void {
 // ---------------------------------------------------------------------------
 
 export function onPlayerLeft(room: Room, _p: Player): void {
-  void _p;
   if (room.sandbox) return;
   if (room.connectedHumans().length === 0) return;
   if (room.phase === PhaseId.ACTION || room.phase === PhaseId.PREP) {
@@ -413,5 +410,4 @@ export function updateRound(room: Room): void {
     default:
       break;
   }
-  void DRONE;
 }

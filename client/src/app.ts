@@ -1,7 +1,7 @@
 // Application shell: screens, session (connect / reconnect), phase driven UI, pointer lock, wake lock.
 
 import {
-  GameMode, OPERATORS, PhaseId, encodeClient, type ClientMsg, type PhaseInfo, type RoomSettings, type RoomState, type ServerMsg,
+  GameMode, PhaseId, type ClientMsg, type PhaseInfo, type RoomSettings, type RoomState, type ServerMsg,
 } from '@holdfast/shared';
 import { GameAudio } from './audio/Audio';
 import { Game, type GameHost } from './game/Game';
@@ -623,7 +623,5 @@ export class App {
       // keep the open scoreboard fresh
       this.scoreboard.update(this.room, this.myId, ph.attackerTeam, ph.scores, this.practice);
     }
-    void OPERATORS;
-    void encodeClient;
   }
 }

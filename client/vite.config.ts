@@ -18,7 +18,7 @@ export default defineConfig({
   },
   preview: { host: true, port: 4173 },
   build: {
-    target: 'es2022',
+    target: ['es2020', 'safari14', 'chrome87', 'firefox78', 'edge88'],
     sourcemap: false,
     chunkSizeWarningLimit: 900,
   },

@@ -30,6 +30,7 @@ export function shadedBox(w: number, h: number, d: number, color = 0xffffff): TH
     colors[i * 3 + 2] = c.b * s;
   }
   g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  g.userData['shared'] = true;
   cache.set(key, g);
   return g;
 }
@@ -51,7 +52,10 @@ export function basicMat(color = 0xffffff, opts: { transparent?: boolean; opacit
     depthWrite: opts.depthWrite ?? true,
     side: opts.side ?? THREE.FrontSide,
   });
-  if (plain) matCache.set(color, m);
+  if (plain) {
+    m.userData['shared'] = true;
+    matCache.set(color, m);
+  }
   return m;
 }
 
@@ -100,4 +104,21 @@ export function hash(a: number, b: number, c: number): number {
   let h = (a * 374761393 + b * 668265263 + c * 2147483647) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/** Dispose geometries, materials and textures under an object, except the shared cached ones. */
+export function disposeTree(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (m.geometry && !m.geometry.userData['shared']) m.geometry.dispose();
+    const mat = m.material as THREE.Material | THREE.Material[] | undefined;
+    if (!mat) return;
+    for (const x of Array.isArray(mat) ? mat : [mat]) {
+      if (x.userData['shared']) continue;
+      const tex = (x as THREE.MeshBasicMaterial).map;
+      if (tex) tex.dispose();
+      x.dispose();
+    }
+    if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose();
+  });
 }

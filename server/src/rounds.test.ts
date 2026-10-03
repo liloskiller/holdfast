@@ -124,7 +124,11 @@ describe('round flow', () => {
     room.advance(5100);
     room.advance(5100);
     room.disconnect(b.p);
-    room.advance(100);
+    // a short blip is forgiven
+    room.advance(1000);
+    expect(room.phase).toBe(PhaseId.ACTION);
+    expect(b.p.state.alive).toBe(true);
+    room.advance(2500);
     expect(room.phase).toBe(PhaseId.ROUND_END);
     expect(room.winnerTeam).toBe(a.p.team);
   });

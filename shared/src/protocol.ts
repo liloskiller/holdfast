@@ -5,7 +5,7 @@ import { TAU, wrapAngle } from './math';
 import type {
   ClientMsg, EntitySnap, GameEvent, InputCmd, PlayerSnap, SelfExtra, ServerMsg, Snapshot, WorldDiff,
 } from './types';
-import { DEFAULT_SETTINGS, type RoomSettings } from './constants';
+import type { RoomSettings } from './constants';
 
 const EXTRA_KEYS: readonly (keyof SelfExtra)[] = [
   'reinf', 'gadget', 'gadgetCd', 'act', 'actP', 'droneCd', 'tagCd', 'spec', 'op', 'camIdx', 'camCount',
@@ -176,7 +176,6 @@ export function sanitizeName(raw: string): string {
 
 export function sanitizeSettings(p: Record<string, unknown>): Partial<RoomSettings> {
   const out: Partial<RoomSettings> = {};
-  const d = DEFAULT_SETTINGS;
   const n = (k: keyof RoomSettings, lo: number, hi: number): void => {
     const v = num(p[k], lo, hi);
     if (v !== null) (out as Record<string, number>)[k] = Math.round(v);
@@ -193,7 +192,6 @@ export function sanitizeSettings(p: Record<string, unknown>): Partial<RoomSettin
   n('swapEvery', 1, 10);
   n('captureTime', 3, 30);
   if (typeof p['friendlyFire'] === 'boolean') out.friendlyFire = p['friendlyFire'];
-  void d;
   return out;
 }
 

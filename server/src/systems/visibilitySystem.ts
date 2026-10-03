@@ -2,7 +2,7 @@
 // legitimately know them (line of sight, tag, or very close), which also cuts bandwidth.
 
 import {
-  EntityKind, NET, PFlag, PLAYER, stateToArray, makeExtra, eyeHeight, PhaseId, GADGET,
+  EntityKind, NET, PFlag, stateToArray, makeExtra, eyeHeight, PhaseId,
   type EntitySnap, type GameEvent, type PlayerSnap, type SelfExtra, type Snapshot, type WorldDiff,
 } from '@holdfast/shared';
 import type { Player } from '../Player';
@@ -214,8 +214,6 @@ export function buildSnapshot(room: Room, viewer: Player, diff: WorldDiff | null
     viewer.prompt = computePrompt(room, viewer);
     extra.prompt = viewer.prompt;
   }
-  void PLAYER;
-  void GADGET;
 
   return {
     tick: room.tick,

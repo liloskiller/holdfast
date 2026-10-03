@@ -77,7 +77,6 @@ export class Hud {
   private hitTimer = 0;
   private damageRoot: HTMLElement;
   private vignette: HTMLElement;
-  private pips: HTMLElement[] = [];
   private friendPips: HTMLElement;
   private foePips: HTMLElement;
 
@@ -101,8 +100,7 @@ export class Hud {
 
     const compass = el('div', 'hud-compass', undefined, root);
     this.n['compass'] = compass;
-    const ticks = el('div', 'compass-line', undefined, compass);
-    void ticks;
+    el('div', 'compass-line', undefined, compass);
     for (let i = 0; i < MAX_MARKERS; i++) {
       const m = el('div', 'cmark hidden', undefined, compass);
       this.markers.push(m);
@@ -164,7 +162,6 @@ export class Hud {
     this.n['spec'] = el('div', 'spec-bar hidden', '', root);
     this.n['sense'] = el('div', 'sense hidden', 'PULSE SENSOR ACTIVE', root);
     this.n['debug'] = el('pre', 'hud-debug hidden', '', root);
-    void this.pips;
   }
 
   show(on: boolean): void {

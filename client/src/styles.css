@@ -152,8 +152,8 @@ select.input { appearance: none; }
 .ops-weapons { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ------------------------------------------------------------------ scoreboard / overlays */
-.scoreboard { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(6, 8, 10, 0.6); pointer-events: none; padding: 12px; }
-.sb-body { width: min(640px, 100%); background: rgba(20, 24, 28, 0.94); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; max-height: 90vh; overflow: hidden; }
+.scoreboard { position: absolute; inset: 0; z-index: 30; display: flex; align-items: flex-end; padding-bottom: calc(var(--safe-b) + 14px) !important; justify-content: center; background: rgba(6, 8, 10, 0.6); pointer-events: none; padding: 12px; }
+.sb-body { width: min(640px, 100%); margin: 0 auto; background: rgba(20, 24, 28, 0.94); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; max-height: 90vh; overflow: hidden; }
 .sb-title { font-weight: 900; letter-spacing: 0.16em; text-align: center; }
 .sb-team { border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
 .sb-team.atk .sb-head { background: rgba(255, 122, 26, 0.25); }
@@ -168,7 +168,7 @@ select.input { appearance: none; }
 .ctp-main { font-size: clamp(28px, 7vmin, 52px); font-weight: 900; letter-spacing: 0.2em; }
 .ctp-sub { color: var(--dim); margin-top: 8px; }
 
-.round-end { position: absolute; left: 0; right: 0; top: 14%; z-index: 28; text-align: center; pointer-events: none; text-shadow: 0 4px 24px rgba(0, 0, 0, 0.8); }
+.round-end { position: absolute; left: 0; right: 0; top: 9%; z-index: 32; text-align: center; pointer-events: none; text-shadow: 0 4px 24px rgba(0, 0, 0, 0.8); }
 .re-main { font-size: clamp(34px, 9vmin, 76px); font-weight: 900; letter-spacing: 0.16em; }
 .round-end.win .re-main { color: var(--ok); }
 .round-end.lose .re-main { color: var(--danger); }

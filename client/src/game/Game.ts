@@ -205,7 +205,7 @@ export class Game {
     if (reset) {
       this.world.reset();
       if (worldDiff) this.world.applyDiff(worldDiff);
-      this.worldView.buildAll();
+      this.worldView.refresh();
       this.entityViews.clear();
       this.interp.clear();
       for (const v of this.playerViews.values()) this.renderer.scene.remove(v.root);
@@ -227,8 +227,7 @@ export class Game {
     this.snapCount++;
     if (s.world) this.world.applyDiff(s.world);
     const wasReady = this.pred.ready;
-    const err = this.pred.reconcile(s.self, s.ack, this.world);
-    void err;
+    this.pred.reconcile(s.self, s.ack, this.world);
     if (!wasReady) {
       this.yaw = this.pred.state.yaw;
       this.pitch = this.pred.state.pitch;
@@ -516,7 +515,6 @@ export class Game {
     const prevSlot = this.pred.state.slot;
     this.pred.step(cmd, this.world, this.stepOut);
     this.stepCount++;
-    const out = this.stepOut;
     const s = this.pred.state;
     if (alive && s.alive) this.onLocalOutputs(prevSlot);
     this.unsent.push(cmd);
@@ -525,7 +523,6 @@ export class Game {
       this.host.send({ t: 'INPUT', cmds: this.unsent.slice(-6) });
       this.unsent.length = 0;
     }
-    void out;
   }
 
   private onLocalOutputs(prevSlot: number): void {
@@ -766,7 +763,6 @@ export class Game {
     }
 
     this.updateHud(dt, viewYaw, ex, ez);
-    void now;
   }
 
   private seenScratch = new Set<number>();

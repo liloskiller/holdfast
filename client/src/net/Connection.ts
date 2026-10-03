@@ -2,7 +2,7 @@
 // Both implement Transport so the game does not care. Includes a lag/jitter/loss simulator for testing
 // (query params ?lag=100&jitter=30&loss=2).
 
-import { decodeServer, encodeClient, encodeServer, type ClientMsg, type ServerMsg } from '@holdfast/shared';
+import { decodeServer, encodeClient, type ClientMsg, type ServerMsg } from '@holdfast/shared';
 import { Lobby } from '@holdfast/server/engine';
 import type { ConnState } from '@holdfast/server/engine';
 
@@ -160,5 +160,3 @@ export class LoopbackConnection implements Transport {
     this.onClose?.('closed');
   }
 }
-
-void encodeServer;

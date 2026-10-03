@@ -1,6 +1,6 @@
 // Map validation: reachability with a player sized footprint, spawn sanity, feature counts.
 
-import { FLOOR_H, LAYERS_PER_FLOOR, PLAYER, TILE, WALL_LAYERS } from './constants';
+import { LAYERS_PER_FLOOR, WALL_LAYERS } from './constants';
 import type { MapData } from './mapFormat';
 import { stairVec } from './mapFormat';
 import { Vox, World } from './world';
@@ -176,6 +176,5 @@ export function checkMap(map: MapData, opts: { requireFeatures?: boolean } = {})
     }
   }
 
-  void FLOOR_H; void TILE; void PLAYER;
   return { errors, warnings, stats };
 }

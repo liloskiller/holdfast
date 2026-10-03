@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import { CELL, FLOOR_H, MaterialId, TILE, Skin, Vox, type Opening, type World } from '@holdfast/shared';
-import { basicMat, faceShade, hash, makeWorldTexture, shadedBox } from './geo';
+import { basicMat, disposeTree, faceShade, hash, makeWorldTexture, shadedBox } from './geo';
 
 const SKIN_COLOR: Record<number, number> = {
   [Skin.CONCRETE]: 0x5d626a,
@@ -22,6 +22,9 @@ const CELL_COLOR: Record<number, number> = {
   [MaterialId.FLOOR_WOOD]: 0xa87a40,
   [MaterialId.METAL]: 0x707c88,
 };
+
+/** Reinforceable wall panels get a mustard tint so players can spot them. */
+const PANEL_COLOR = 0xcaa75a;
 
 interface CellSlot {
   mesh: THREE.InstancedMesh;
@@ -69,14 +72,31 @@ export class WorldView {
     this.world.onCell = null;
     this.world.onOpening = null;
     this.scene.remove(this.group);
-    this.group.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (m.geometry && !(m.geometry instanceof THREE.BoxGeometry)) m.geometry.dispose();
-    });
+    disposeTree(this.group);
+    this.worldTex.dispose();
+    this.objMat.dispose();
   }
 
-  /** Rebuild everything from the current world state (join, new round). */
+  /**
+   * Re-sync every cell, door and barricade with the world state (new round). The static geometry
+   * never changes, so it is kept; this avoids rebuilding and leaking meshes every round.
+   */
+  refresh(): void {
+    this.prevAlive = Uint8Array.from(this.world.cellAlive);
+    for (let id = 0; id < this.world.cellCount; id++) this.applyCell(id);
+    for (const d of this.doors) {
+      d.angle = 0;
+      if (d.pivot) d.pivot.rotation.y = 0;
+    }
+    for (const op of this.world.openings) this.openingChanged(op.id);
+    for (const d of this.doors) {
+      if (d.pivot) d.pivot.rotation.y = d.angle = d.target;
+    }
+  }
+
+  /** Build everything from the current world state (join). */
   buildAll(): void {
+    disposeTree(this.group);
     this.group.clear();
     this.doors = [];
     this.cellMeshes.clear();
@@ -149,9 +169,7 @@ export class WorldView {
           const skin = w.skin[(l * nz + z) * nx + x] as number;
           let base = SKIN_COLOR[skin] ?? 0x888888;
           if (skin === Skin.FURNITURE) {
-            const v = hash(x, l, z);
             base = [0x7c5c3e, 0x5f6f7a, 0x8a4f4a, 0x6b7a54][Math.floor(hash(x >> 2, z >> 2, 7) * 4)] ?? base;
-            void v;
           }
           const jitter = 0.94 + hash(x, l, z) * 0.1;
           for (const [fx, fy, fz, corners] of faces) {
@@ -289,7 +307,7 @@ export class WorldView {
     const alive = w.cellAlive[id] === 1;
     const reinforced = w.cellReinf[id] === 1 && alive;
     const mat = w.cellMat[id] as number;
-    const base = CELL_COLOR[mat] ?? 0xcccccc;
+    const base = (w.cellPanel[id] as number) >= 0 ? PANEL_COLOR : (CELL_COLOR[mat] ?? 0xcccccc);
     const ratio = Math.max(0, Math.min(1, (w.cellHp[id] as number) / (w.cellMaxHp[id] as number)));
     const tint = 0.5 + 0.5 * ratio;
 

@@ -1,6 +1,6 @@
 // Drains each player's input queue through the shared deterministic step.
 
-import { Btn, PhaseId, SIM_DT, makeStepOut, operatorDef, stepPlayer, OperatorId, type InputCmd } from '@holdfast/shared';
+import { SIM_DT, makeStepOut, stepPlayer, OperatorId, type InputCmd } from '@holdfast/shared';
 import type { Room } from '../Room';
 import type { Player } from '../Player';
 import { melee, shoot } from './combatSystem';
@@ -68,9 +68,6 @@ function applyCmd(room: Room, p: Player, cmd: InputCmd): void {
   } else if (speed < 0.5) {
     p.stepDist = 0;
   }
-  void Btn;
-  void PhaseId;
-  void operatorDef;
 }
 
 /** Dummies are stationary targets that respawn, used by Practice mode. */
