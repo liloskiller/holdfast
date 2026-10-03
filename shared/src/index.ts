@@ -11,3 +11,4 @@ export * from './protocol';
 export * from './mapCheck';
 export * from './testMap';
 export * from './testUtil';
+export * from './qr';

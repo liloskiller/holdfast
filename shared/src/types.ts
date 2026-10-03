@@ -302,7 +302,7 @@ export type GameEvent =
   | { k: 'melee'; id: number }
   | { k: 'tag'; id: number }
   | { k: 'sense'; pts: number[] }
-  | { k: 'spawn'; id: number }
+  | { k: 'spawn'; id: number; yaw: number }
   | { k: 'reset' };
 
 export interface SelfExtra {

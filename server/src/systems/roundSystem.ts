@@ -230,6 +230,7 @@ function setupState(room: Room, p: Player, spawn: SpawnPoint | { x: number; y: n
   p.dLastY = 0;
   p.dLastZ = 0;
   p.clearHistory();
+  if (!p.isDummy) room.pushEvent(p.id, { k: 'spawn', id: p.id, yaw: spawn.yaw });
 }
 
 function assignSpawns(room: Room): void {

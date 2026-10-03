@@ -38,6 +38,7 @@ export function makeStepOut(): StepOut {
 const buf = new Float64Array(512 * BOX_STRIDE);
 const vaultTarget: VaultTarget = { x: 0, y: 0, z: 0 };
 const SKIN = PLAYER.skin;
+const DRONE_MAX_Y = 8;
 
 function height(s: PlayerState): number {
   return s.crouch ? PLAYER.heightCrouch : PLAYER.heightStand;
@@ -154,6 +155,13 @@ function stepDrone(s: PlayerState, cmd: InputCmd, world: World, dt: number): voi
     else if (ax === 1) { s.dy += allowed; if (allowed !== d) s.dvy = 0; }
     else { s.dz += allowed; if (allowed !== d) s.dvz = 0; }
   }
+  // stay inside the fenced area and below a sensible ceiling
+  const lo = TILE + r;
+  const hiX = (world.nx - 1) * TILE - r;
+  const hiZ = (world.nz - 1) * TILE - r;
+  if (s.dx < lo) { s.dx = lo; s.dvx = 0; } else if (s.dx > hiX) { s.dx = hiX; s.dvx = 0; }
+  if (s.dz < lo) { s.dz = lo; s.dvz = 0; } else if (s.dz > hiZ) { s.dz = hiZ; s.dvz = 0; }
+  if (s.dy > DRONE_MAX_Y) { s.dy = DRONE_MAX_Y; s.dvy = 0; }
 }
 
 function approachTo(v: number, target: number, maxDelta: number): number {

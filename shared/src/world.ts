@@ -224,7 +224,7 @@ export class World {
                 for (let k = 0; k < LAYERS_PER_FLOOR; k++) addStatic(x, base + k, z, Skin.CONCRETE);
               } else {
                 // fence ring or yard walls: full height
-                for (let l = 0; l < ny; l++) if (f === 0) addStatic(x, l, z, Skin.FENCE);
+                if (f === 0) for (let l = 0; l < LAYERS_PER_FLOOR; l++) addStatic(x, l, z, Skin.FENCE);
               }
               break;
             }
