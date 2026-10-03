@@ -58,6 +58,8 @@ Tap E near a **broken window** to vault through it. **Hold E** facing a marked w
 
 `Lobby, Operator select (20 s), Prep (45 s), Action (180 s), Round end`. First team to 4 rounds wins; sides swap every 3 rounds. In **Secure Area** attackers win by holding the glowing objective zone for 10 seconds with no living defender inside, or by eliminating defenders; defenders win by eliminating attackers or running out the clock. **Elimination** is last team standing. Host settings are in the lobby.
 
+If someone's connection drops, they keep their slot: a 3 second grace period before they count as dead for the round, and they can rejoin the same room for up to 60 seconds (the game reconnects automatically; if you reload the page, tap JOIN again and you get your slot back). Players who join mid-round spectate until the next round.
+
 | Operator | Side | Gadget |
 |---|---|---|
 | Ram | Attack | Hard breach charge (breaks reinforced walls and hatches) |
@@ -82,10 +84,12 @@ Tap E near a **broken window** to vault through it. **Hold E** facing a marked w
 | `npm run map:check` | Validates every map in `shared/maps` (reachability with a player sized footprint, spawns, counts) |
 | `npm run lint:dashes` | Guards the "no em dashes" rule |
 | `npm run icons` | Regenerates the PWA icons |
+| `npx tsx scripts/bench.ts` | Server benchmark: 10 players on Safehouse, prints tick time and bandwidth |
+| `npx tsx scripts/arena-server.ts` | Serves the built client with a tiny open arena map on port 8788 (quick two-player testing) |
 
 Environment: `PORT` (default 8787), `HTTPS=1` with `HTTPS_KEY` / `HTTPS_CERT` (or files in `certs/`).
 
-URL parameters for testing: `?debug` (stats overlay), `?lag=100&jitter=30&loss=2` (simulated network), `?touch` (force touch controls), `?room=ABCD` (prefill the join code).
+URL parameters for testing: `?debug` (stats overlay), `?lag=100&jitter=30&loss=2` (simulated network), `?touch` (force touch controls), `?room=ABCD` (prefill the join code), `?netpractice` (run Practice on the real server instead of in the browser, handy together with `?lag=`), `?nolock` (skip pointer lock, for automated browser tests).
 
 ## Repository layout
 

@@ -30,6 +30,8 @@ export class Renderer {
       alpha: false,
       stencil: false,
     });
+    // Mobile browsers can drop the GL context in the background. Allow the browser to restore it.
+    canvas.addEventListener('webglcontextlost', (e) => e.preventDefault());
     this.gl.autoClear = false;
     this.gl.setClearColor(0x9db8c9, 1);
 
