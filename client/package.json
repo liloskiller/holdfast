@@ -1,0 +1,19 @@
+{
+  "name": "@holdfast/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p . --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@holdfast/shared": "*",
+    "@holdfast/server": "*",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0"
+  }
+}

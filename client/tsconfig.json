@@ -1,0 +1,8 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"]
+  },
+  "include": ["src", "../shared/src", "../server/src/engine.ts", "../server/src/Room.ts", "../server/src/Lobby.ts", "../server/src/Player.ts", "../server/src/systems"]
+}

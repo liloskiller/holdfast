@@ -1,0 +1,64 @@
+# HOLDFAST - project rules
+
+Sections 0, 1 and 2 of PLAN.md, copied here so every session sees them. PLAN.md is the source of truth.
+
+## 0. How we work (read first)
+
+- Work **one milestone at a time** (section 12). After each milestone: run typecheck, run tests, run the game, commit, then STOP and tell me exactly how to run and test it. Do not start the next milestone until I say so.
+- Always give **complete files**, never partial snippets or "rest unchanged" placeholders.
+- Keep dependencies minimal. Allowed runtime deps: `three` (client), `ws` (server). Dev deps: `typescript`, `vite`, `tsx`, `vitest`, `@vitejs/plugin-basic-ssl`, `@types/*`. Ask me before adding anything else.
+- No game engine, no physics engine, no React for the game or HUD. Plain TS and DOM.
+- **No em dashes anywhere** in code comments, UI strings or docs. Use regular hyphens.
+- When something in this plan is ambiguous or a better option exists, say so briefly and pick the simplest option that keeps the milestone shippable.
+- Prefer boring, readable code over clever code. Small modules, explicit types, no `any`.
+
+---
+
+## 1. Goals and non-goals
+
+### Goals
+- 3D first person tactical shooter, **one life per round**, attackers vs defenders on a single multi-floor house map.
+- The Siege pillars: **destructible walls and floors, reinforcement, barricades, breaching, drone recon, information warfare, gadgets.**
+- 2 to 10 players. Friends join on their phones or laptops by opening a URL and entering a room code.
+- Stable 60 fps on a mid range phone (3 to 4 years old), 30 fps minimum floor.
+- Fully original: own name, own operators, own map, own sounds. No Ubisoft assets, names or logos.
+- Runs locally on a laptop for LAN, and can be deployed to Hetzner behind Cloudflare for internet play.
+
+### Non-goals (do NOT build these early)
+Ranked, accounts, skins, shop, voice chat, bots (stretch only), realistic ballistics, physics ragdolls, animation rigs, glTF pipelines, more than one map, anti-cheat beyond server authority.
+
+---
+
+## 2. Key technical decisions (locked unless I say otherwise)
+
+| Area | Decision | Why |
+|---|---|---|
+| Renderer | Three.js, WebGL2, low poly flat shaded, no real time shadows | Phone performance, tiny setup |
+| Art | Procedural primitives (boxes, capsules, cylinders) with flat colors and simple canvas generated textures | Zero asset pipeline, original by default |
+| Language | TypeScript strict everywhere | Shared types between client and server |
+| Repo | npm workspaces: `shared`, `server`, `client` | Shared simulation code runs on both sides |
+| Server | Node + `ws`, authoritative, **60 Hz simulation, 20 Hz snapshots** | Cheap, easy to reason about |
+| Netcode | Client prediction + server reconciliation for the local player, **snapshot interpolation (100 ms buffer)** for remote players, **server side lag compensation** for hitscan | Feels fair on bad Wi-Fi |
+| Transport | WebSocket (TCP) for everything at first. JSON messages behind a `codec` module so we can swap to binary later | Simplest thing that works |
+| Physics | Custom kinematic character controller vs AABB world. Ray vs AABB for bullets. No physics lib | Full control, tiny |
+| World | Uniform grid. Static geometry plus **destructible cells** (see section 5) | Makes destruction cheap to sync |
+| Map format | ASCII floor plans in text files, compiled to geometry at load | Easy to author and diff, Claude Code can edit maps directly |
+| UI | Vanilla TS + DOM overlay for HUD, menus, lobby | No framework needed |
+| Audio | WebAudio, **procedurally synthesized** sound effects (no audio files) | No assets, positional audio for free |
+| Input | Desktop: WASD + mouse with Pointer Lock. Phone: dual thumb touch controls | Both first class from day one |
+
+Units: **1 world unit = 1 meter.** Y is up. Right handed (Three.js default).
+
+---
+
+---
+
+## Repo notes (added during the first build session)
+
+- This game lives in `holdfast/` inside the `caliente` repo. The nightclub website at the repo root is unrelated, do not touch it.
+- `npm install` needs `legacy-peer-deps=true` (already set in `holdfast/.npmrc`).
+- Everything in `shared/` must stay deterministic and free of DOM, Three.js, `Date` and `Math.random` (a test enforces this).
+- `server/src/engine.ts` is platform neutral (no Node imports) so the same Room code runs in Node (real server) and in the browser (Practice mode over a loopback transport).
+- The map is plain ASCII in `shared/maps/safehouse.map.txt`. After editing run `npm run map:check`.
+- Run `npm run typecheck && npm test` before every commit.
+

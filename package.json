@@ -1,0 +1,27 @@
+{
+  "name": "holdfast",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "HOLDFAST - 3D tactical breach shooter (working title)",
+  "workspaces": ["shared", "server", "client"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build -w @holdfast/client",
+    "test": "vitest run",
+    "typecheck": "tsc -p shared --noEmit && tsc -p server --noEmit && tsc -p client --noEmit",
+    "start": "tsx server/src/index.ts",
+    "lan": "node scripts/lan.mjs",
+    "map:check": "tsx scripts/mapcheck.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.13",
+    "@vitejs/plugin-basic-ssl": "^2.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.0",
+    "vitest": "^4.0.0"
+  }
+}

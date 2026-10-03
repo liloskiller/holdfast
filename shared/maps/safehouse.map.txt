@@ -1,0 +1,146 @@
+// HOLDFAST - Safehouse
+// Legend: . floor  # concrete  W wood  P plaster  B brick  R reinforceable  g window  D door  d doorway
+//         h hatch (floor above)  c hatch marker (ceiling below)  s stairs up  S stairs down opening
+//         f low furniture (1 m)  F tall furniture (2 m)  A attacker spawn  Y defender spawn  O objective  x void
+name: Safehouse
+tile: 0.5
+floor_height: 3.0
+size: 76 60
+floors: 2
+building: 10 10 66 50
+objective: Kitchen
+objective: Study
+attacker: Back
+attacker: Side
+attacker: Front
+drone: Front-L 18 52
+drone: Front-R 56 52
+drone: Back-L 18 6
+drone: Back-R 56 6
+camera: Hall-NE 0 40 17
+camera: Landing-N 1 30 17
+stairs: 0 30 26 E
+
+--- floor 0 ---
+############################################################################
+#..........................................................................#
+#..........................................................................#
+#.....................fff.........................FF.......................#
+#.....................fff.........................FF.......................#
+#...................................AAA....................................#
+#..........................................................................#
+#..........................................................................#
+#..........................................................................#
+#..........................................................................#
+#.........######gg##############gg###########gg###########DD######.........#
+#.........#.fff..........FFP.......FFFF.B.........FFFP........fff#.........#
+#.........#..............FFR............B.........FFFP........fff#.........#
+#.........#................R............B..fffff.....P...........#.........#
+#.........#...OOOOOO.......R............B..fffff.....P...........#.........#
+#.........#...OOOOOO.......P............B............P...........#.........#
+#.........g...OOOOOO.ffff..D............D............d...........g.........#
+#.........g...OOOOOO.ffff..D............D............d...........g.........#
+#.........#...OOOOcc.......P.........ff.B............P.....cc....#..ff.....#
+#.........#...OOOOcc.......R.........ff.B.........ff.P.....cc....#..ff.....#
+#.........#............Y...RFF..........B.........ff.PFF.........#.........#
+#.........#................RFF..........B..cc........PFF.........#.........#
+#.........#................PFF..........B..cc.....Y..PFF.........#.........#
+#.........#................PFF..........B............PFF.........#.........#
+#...FF....#PRRRPPddPPRRRPPP#PPPPPDDPPPPP#PPPPPDDPPPPP#PPPPDDPPPPP#.........#
+#...FF....#............FFFFP.........................P..FFFF.....#.........#
+#...FF....#................P..sssssssssss..ff........P...........#.........#
+#...FF....#................P..sssssssssss..ff........P...........#.........#
+#.........#....ffffff......P..sssssssssss............P...........#....A....#
+#.........g....ffffff......d.........................D...fff.....g....A....#
+#.........g....ffffff......d.........................D...fff.....g....A....#
+#.........#....ffffff......P.........................P...........#.........#
+#.........#................P...............ffffff....P..ffffff...#.........#
+#.........#.........Y......P...............ffffff....P..ffffff...#.........#
+#.........#................P.........................P...........#.........#
+#.........#WWWWWWDDWWWWWWWW#BBBBddddBBBB#BBBBBDDBBBBB#BBBBDDBBBBB#.........#
+#.........#................P............BFF..........P...........#....FF...#
+#.........#.............FFFP............BFF..........P...........#....FF...#
+#...ff....#.............FFFP............BFF..........P...........#.........#
+#...ff....#...ffffff....FFFP............BFF....Y.....P...........#.........#
+#.........#...ffffff.......P............BFF..........P...........#.........#
+#.........g...ffffff.......D............d.....cc.....D...ffff....g.........#
+#.........g...ffffff.......D............d.....cc.....D...ffff....g.........#
+#.........#...ffffff.......P............B.ffff.......P...........#.........#
+#.........#................P............B.ffff.......P...........#.........#
+#.........#................P............B..ffffff....P...........#.........#
+#.........#ff..............P.fff.....FF.B..ffffff....PFF......fff#.........#
+#.........#ff..............P.fff.....FF.B............PFF......fff#.........#
+#.........#................P.........FF.B............PFF.........#.........#
+#.........######gg###############DD#########gg##gg#######gg#######.........#
+#..........................................................................#
+#..........................................................................#
+#.........................FF...............................................#
+#.........................FF...............................................#
+#...................ff......................ffffff.........................#
+#...................ff........AAA...........ffffff.........................#
+#...........................................ffffff.........................#
+#..........................................................................#
+#..........................................................................#
+############################################################################
+
+--- floor 1 ---
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxx######gg##############gg###########gg############gg#####xxxxxxxxxx
+xxxxxxxxxx#.............FFFWfff.....ffffP............P...........#xxxxxxxxxx
+xxxxxxxxxx#.fffff.......FFFWfff.....ffffR..fffff.....P..fffff....#xxxxxxxxxx
+xxxxxxxxxx#.fffff..........W........ffffR..fffff.....P..fffff....#xxxxxxxxxx
+xxxxxxxxxx#.fffff..........W............R...OOOOOO...P..fffff....#xxxxxxxxxx
+xxxxxxxxxx#.fffff..........W............P...OOOOOOFFFP..fffff....#xxxxxxxxxx
+xxxxxxxxxxg................D............D...OOOOOOFFFd...........gxxxxxxxxxx
+xxxxxxxxxxg................D............D...OOOOOOFFFd...........gxxxxxxxxxx
+xxxxxxxxxx#.......hh.......W............P...OOOOOOFFFP.....hh....#xxxxxxxxxx
+xxxxxxxxxx#.......hh.......W............R...OOOOOOFFFP.....hh....#xxxxxxxxxx
+xxxxxxxxxx#..Y.............W..........ffR............P........FFF#xxxxxxxxxx
+xxxxxxxxxx#................W..........ffR..hh........P........FFF#xxxxxxxxxx
+xxxxxxxxxx#................W........FFF.P..hh.....Y..P....Y...FFF#xxxxxxxxxx
+xxxxxxxxxx#................W........FFF.P............P........FFF#xxxxxxxxxx
+xxxxxxxxxx#PPPPPPDDPPPPPPPP#PPPPPDDPPPPP#PRRRPDDPRRRP#PPPPDDPPPPP#xxxxxxxxxx
+xxxxxxxxxx#.fffff.....FFFFFP.........................P......fffff#xxxxxxxxxx
+xxxxxxxxxx#.fffff.....FFFFFP.fSSSSSSSSSSS............P......fffff#xxxxxxxxxx
+xxxxxxxxxx#.fffff..........P.fSSSSSSSSSSS............P...........#xxxxxxxxxx
+xxxxxxxxxx#................P.fSSSSSSSSSSS............P...........#xxxxxxxxxx
+xxxxxxxxxxg................d.ffffffffffff............D...........gxxxxxxxxxx
+xxxxxxxxxxg................d.........................D...........gxxxxxxxxxx
+xxxxxxxxxx#................P.........................PFFF........#xxxxxxxxxx
+xxxxxxxxxx#................P....................ffff.PFFF...FFF..#xxxxxxxxxx
+xxxxxxxxxx#................P....................ffff.PFFF...FFF..#xxxxxxxxxx
+xxxxxxxxxx#................P.........................PFFF...FFF..#xxxxxxxxxx
+xxxxxxxxxx#BBBBBBDDBBBBBBBB#BBBBddddBBBB#BBBBBDDBBBBB#BBBBDDBBBBB#xxxxxxxxxx
+xxxxxxxxxx#................P............B............P...........#xxxxxxxxxx
+xxxxxxxxxx#.fffff..........P..........FFB.........FFFP........FFF#xxxxxxxxxx
+xxxxxxxxxx#.fffff..........P..........FFB.........FFFP........FFF#xxxxxxxxxx
+xxxxxxxxxx#.fffff..........P..........FFB.........FFFP........FFF#xxxxxxxxxx
+xxxxxxxxxx#.fffff..........P..........FFB.........FFFP...........#xxxxxxxxxx
+xxxxxxxxxxg................D....ffff....d.....hh.....D...........gxxxxxxxxxx
+xxxxxxxxxxg................D....ffff....d.....hh.....D...........gxxxxxxxxxx
+xxxxxxxxxx#................P....ffff....B.........Y..P...........#xxxxxxxxxx
+xxxxxxxxxx#................P..........FFB............P..fffff....#xxxxxxxxxx
+xxxxxxxxxx#................P..........FFB..ffffff....P..fffff....#xxxxxxxxxx
+xxxxxxxxxx#.............FFFP..........FFB..ffffff....P..fffff....#xxxxxxxxxx
+xxxxxxxxxx#.............FFFP..........FFB............P...........#xxxxxxxxxx
+xxxxxxxxxx#.............FFFP............B............P...........#xxxxxxxxxx
+xxxxxxxxxx######gg###############gg#########gg##gg#######gg#######xxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
