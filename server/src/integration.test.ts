@@ -187,8 +187,8 @@ describe('integration: real websocket server with bots', () => {
     const snapsAtAction = a.snaps;
     await a.waitFor(() => a.phase?.phase === PhaseId.ROUND_END, 40000);
     expect(a.phase?.winnerTeam).toBeGreaterThanOrEqual(0);
-    expect(a.kills.length).toBeGreaterThanOrEqual(1);
-    expect(b.kills.length).toBe(a.kills.length);
+    // the PHASE message can overtake the snapshot that carries the kill event, so wait for it
+    await a.waitFor(() => a.kills.length >= 1 && b.kills.length === a.kills.length, 3000);
     expect(a.snaps).toBeGreaterThan(snapsAtAction);
     await a.waitFor(() => a.phase?.phase === PhaseId.MATCH_END, 8000);
     expect(a.phase?.scores[0]! + a.phase?.scores[1]!).toBe(1);

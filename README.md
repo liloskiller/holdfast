@@ -1,0 +1,117 @@
+# HOLDFAST
+
+A cheap, original, Rainbow Six Siege inspired 3D tactical breach shooter. Browser based, multiplayer, built to be played on phones and laptops with friends over your own Wi-Fi or the internet.
+
+TypeScript, Three.js, and a tiny authoritative Node WebSocket server. No game engine, no physics engine, no UI framework, no audio or model files: everything is generated in code.
+
+- 2 to 10 players, one life per round, attackers vs defenders on one two floor house ("Safehouse").
+- Destructible walls and floors, reinforcement, barricades, hard breach charges, drones, security cameras, pulse sensors, traps, jammers, shields, heal darts.
+- Server authoritative with client prediction, snapshot interpolation and lag compensated hitscan.
+- Phone and desktop first class. Installable as a PWA.
+
+`PLAN.md` is the full design. `CLAUDE.md` holds the working rules.
+
+## Quick start
+
+```bash
+cd holdfast
+npm install        # .npmrc sets legacy-peer-deps, you do not need to pass anything
+npm run dev        # game server + Vite dev server (HTTPS)
+```
+
+Open `https://localhost:5173`. The first time, the browser warns about the self signed certificate: Advanced, Proceed.
+
+Click **PRACTICE** to play alone right away. Practice runs a complete authoritative room inside your browser (no server needed) with shootable targets and sandbox tools, so it is the fastest way to try destruction, gadgets and movement.
+
+## Playing with friends on your Wi-Fi (phones and laptops)
+
+Phones need a **secure context** (HTTPS) for Wake Lock, gyro aim and installing the PWA, and a LAN IP over plain HTTP is not secure. Pick one:
+
+1. **Easiest, one command:** `npm run lan`
+   Builds the client, creates a self signed certificate for your LAN IPs (needs `openssl`), and serves the game and websocket over HTTPS on one port (`PORT`, default 8443). It prints the URL and a **QR code**. Friends scan it, accept the certificate warning once, and are in.
+2. **Dev server:** `npm run dev` prints a QR for `https://<your-ip>:5173`. Same warning, once.
+3. **Friends anywhere (valid certificate, no router setup):** run the server locally (`npm run build && npm start`) and put a Cloudflare Tunnel in front: `cloudflared tunnel --url http://localhost:8787`. It gives you a real `https://....trycloudflare.com` URL.
+
+In the game: one person taps **CREATE ROOM**, everyone else enters the 4 letter code (or scans the QR in the lobby). The host picks settings and starts the match.
+
+**iPhone:** Safari has no fullscreen for web pages. Use Share, then **Add to Home Screen**, and open it from there. Audio only starts after your first tap. Rotate to landscape.
+
+## Controls
+
+| Action | Keyboard and mouse | Touch |
+|---|---|---|
+| Move / sprint | WASD / Shift | Left stick (push to the rim to sprint) |
+| Look | Mouse | Drag the right side |
+| Fire / aim | Left / right mouse | FIRE (drag it to aim) / AIM |
+| Reload, swap, kick | R, 1 / 2 / Q, V | RELOAD, SWAP, KICK |
+| Crouch | C (toggle), Ctrl (hold) | CROUCH |
+| Use (door, vault, hold to reinforce or barricade) | E | USE |
+| Gadget | F | GADGET |
+| Drone / camera | X / Z | DRONE / CAM |
+| Drone up / down | Space / C | UP / DOWN |
+| Scoreboard / pause | Tab / Esc | SCORE / II |
+| Practice tools | B blast, N reinforce, M reset, K refill | Pause menu |
+
+Tap E near a **broken window** to vault through it. **Hold E** facing a marked wall panel to reinforce it (defenders, prep only) or facing a door or window to barricade it. Drone: FIRE tags the enemy in your crosshair so your team sees them through walls for 8 seconds.
+
+## How a match works
+
+`Lobby, Operator select (20 s), Prep (45 s), Action (180 s), Round end`. First team to 4 rounds wins; sides swap every 3 rounds. In **Secure Area** attackers win by holding the glowing objective zone for 10 seconds with no living defender inside, or by eliminating defenders; defenders win by eliminating attackers or running out the clock. **Elimination** is last team standing. Host settings are in the lobby.
+
+| Operator | Side | Gadget |
+|---|---|---|
+| Ram | Attack | Hard breach charge (breaks reinforced walls and hatches) |
+| Ping | Attack | Pulse sensor (heartbeats through walls) |
+| Mend | Attack | Heal darts |
+| Aegis | Attack | Deployable shield, 110 HP |
+| Warden | Defend | Extra reinforcement, faster building |
+| Snare | Defend | Spike traps |
+| Jam | Defend | Signal jammers |
+| Eye | Defend | Security cameras |
+| Recruit | Both | No gadget, always available |
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Server (tsx watch) and Vite dev server together, HTTPS, QR for phones |
+| `npm run lan` | Build and serve over HTTPS on one port with a QR code |
+| `npm run build` / `npm start` | Production build / production server (serves `client/dist`) |
+| `npm test` | Vitest unit and integration tests (includes bots playing over real websockets) |
+| `npm run typecheck` | Strict TypeScript for shared, server and client |
+| `npm run map:check` | Validates every map in `shared/maps` (reachability with a player sized footprint, spawns, counts) |
+| `npm run lint:dashes` | Guards the "no em dashes" rule |
+| `npm run icons` | Regenerates the PWA icons |
+
+Environment: `PORT` (default 8787), `HTTPS=1` with `HTTPS_KEY` / `HTTPS_CERT` (or files in `certs/`).
+
+URL parameters for testing: `?debug` (stats overlay), `?lag=100&jitter=30&loss=2` (simulated network), `?touch` (force touch controls), `?room=ABCD` (prefill the join code).
+
+## Repository layout
+
+```
+shared/   deterministic code used by BOTH sides: constants, math, collision, World (voxel grid with
+          destructible cells), stepPlayer (movement and weapons), map parser and checker, protocol, QR
+server/   Room, Lobby, systems (movement, combat, destruction, gadgets, rounds, visibility); Node bootstrap
+client/   Three.js renderer, WorldView (instanced cells), prediction, interpolation, HUD, UI, audio, input
+scripts/  dev, lan, map check, icon generator
+deploy/   Dockerfile and systemd unit examples
+```
+
+Key ideas:
+
+- **One simulation, two places.** `shared/src/movement.ts` is the only movement and firing code. The server runs it for truth, the client runs the same function for prediction, and inputs are quantized so both sides agree bit for bit.
+- **The map is ASCII** (`shared/maps/safehouse.map.txt`, legend in PLAN.md section 5.8). Edit it by hand, then run `npm run map:check`.
+- **Anti wallhack:** every snapshot is filtered per recipient. Enemies you cannot see (and have not tagged) are simply not in your network traffic. Sounds out of line of sight arrive with a jittered position.
+- **Practice mode** runs the same `Room` class in the browser through a loopback transport (`client/src/net/Connection.ts`), which is why the server's `engine.ts` has no Node imports.
+
+## Deploying (Hetzner behind Cloudflare)
+
+`deploy/Dockerfile` builds and runs the server and client in one image; `deploy/holdfast.service` is a systemd unit if you prefer running on the host. Put Cloudflare in front with WebSockets enabled and "Always use HTTPS". The game sends protocol level pings every 15 seconds, well inside Cloudflare's idle timeout. `/health` returns `{"ok":true}`. A manual GitHub Actions deploy template lives in `../.github/workflows/holdfast-deploy.yml`.
+
+## Known limitations (v1)
+
+- One map, JSON over WebSocket (a binary protocol is isolated behind `shared/src/protocol.ts`).
+- Wall penetration is simplified: soft walls let bullets through once at half damage.
+- Gyro aim is experimental and untested on real devices.
+- The synthesized audio is functional rather than beautiful.

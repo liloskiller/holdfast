@@ -15,7 +15,7 @@ describe('shared purity', () => {
     [/\bdocument\./, 'document'],
     [/\bwindow\./, 'window'],
     [/from 'three'/, 'three'],
-    [/—/, 'em dash'],
+    [new RegExp(String.fromCharCode(0x2014)), 'em dash'],
   ];
   for (const f of files) {
     it(`${f} has no banned tokens`, () => {

@@ -4,6 +4,8 @@ Sections 0, 1 and 2 of PLAN.md, copied here so every session sees them. PLAN.md 
 
 ## 0. How we work (read first)
 
+> Note: the first session built every milestone (M0 to M11) in one go because the owner asked to "execute the plan as much as you can" so they could start testing. For later sessions, go back to working on one change at a time.
+
 - Work **one milestone at a time** (section 12). After each milestone: run typecheck, run tests, run the game, commit, then STOP and tell me exactly how to run and test it. Do not start the next milestone until I say so.
 - Always give **complete files**, never partial snippets or "rest unchanged" placeholders.
 - Keep dependencies minimal. Allowed runtime deps: `three` (client), `ws` (server). Dev deps: `typescript`, `vite`, `tsx`, `vitest`, `@vitejs/plugin-basic-ssl`, `@types/*`. Ask me before adding anything else.

@@ -4,16 +4,24 @@
   "version": "0.1.0",
   "type": "module",
   "description": "HOLDFAST - 3D tactical breach shooter (working title)",
-  "workspaces": ["shared", "server", "client"],
-  "engines": { "node": ">=20" },
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "dev": "node scripts/dev.mjs",
+    "dev": "tsx scripts/dev.ts",
     "build": "npm run build -w @holdfast/client",
     "test": "vitest run",
     "typecheck": "tsc -p shared --noEmit && tsc -p server --noEmit && tsc -p client --noEmit",
     "start": "tsx server/src/index.ts",
-    "lan": "node scripts/lan.mjs",
-    "map:check": "tsx scripts/mapcheck.ts"
+    "lan": "tsx scripts/lan.ts",
+    "map:check": "tsx scripts/mapcheck.ts",
+    "icons": "tsx scripts/make-icons.ts",
+    "lint:dashes": "node -e \"const fs=require('fs'),p=require('path');let bad=0;(function w(d){for(const f of fs.readdirSync(d)){if(['node_modules','dist','certs','.git'].includes(f))continue;const q=p.join(d,f);if(fs.statSync(q).isDirectory())w(q);else if(/\\.(ts|md|css|html|json|txt|js|mjs|yml)$/.test(f)&&fs.readFileSync(q,'utf8').includes('\\u2014')){console.log('em dash in',q);bad=1}}})('.');process.exit(bad)\""
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
