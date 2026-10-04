@@ -33,5 +33,5 @@ fs.rmSync(outDir, { recursive: true, force: true });
 
 const kb = Math.round(fs.statSync(file).size / 1024);
 console.log(`\n[offline] wrote ${path.relative(root, file)} (${kb} KB)`);
-console.log('[offline] Double click it (Chrome, Edge, Firefox, Safari) for solo Practice. No server, no internet.');
+console.log('[offline] Double click it (Chrome, Edge, Firefox, Safari) for a solo match vs bots or Practice. No server, no internet.');
 console.log('[offline] Multiplayer still needs the server: npm run lan');
