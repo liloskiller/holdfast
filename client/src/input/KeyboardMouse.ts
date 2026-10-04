@@ -10,6 +10,7 @@ export interface KeyboardHooks {
   onDebug(cmd: string): void;
   onLockChange(locked: boolean): void;
   onSpectate(dir: number): void;
+  onMark(): void;
 }
 
 export class KeyboardMouse {
@@ -112,6 +113,7 @@ export class KeyboardMouse {
       case 'KeyR': inp.setHeld(Btn.RELOAD, down); break;
       case 'KeyG': inp.setHeld(Btn.GADGET, down); break;
       case 'KeyT': inp.setHeld(Btn.THROW, down); break;
+      case 'KeyY': if (down) this.hooks.onMark(); break;
       case 'KeyQ': inp.setHeld(Btn.LEAN_L, down); break;
       case 'KeyE': inp.setHeld(Btn.LEAN_R, down); break;
       case 'KeyV': inp.setHeld(Btn.MELEE, down); break;
@@ -143,7 +145,11 @@ export class KeyboardMouse {
   private onMouse(e: MouseEvent, down: boolean): void {
     if (!this.enabled) return;
     if (!this.isLocked) return;
-    if (e.button === 0) this.input.setHeld(Btn.FIRE, down);
+    if (e.button === 1) {
+      // middle click marks the spot for the team
+      if (down) this.hooks.onMark();
+      e.preventDefault();
+    } else if (e.button === 0) this.input.setHeld(Btn.FIRE, down);
     else if (e.button === 2) {
       if (settings.adsToggle) {
         if (down) this.input.adsToggle = !this.input.adsToggle;

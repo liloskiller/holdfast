@@ -84,6 +84,7 @@ export class Player {
   respawnAt = 0;
   /** Secondary gadget: what was picked, what is in the pouch now, and the throw cooldown (s). */
   throwPick = 0;
+  markAt = 0;
   throwKind = 0;
   throwLeft = 0;
   throwCd = 0;

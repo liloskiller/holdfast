@@ -114,7 +114,7 @@ export class HelpScreen {
     ]);
     sec('KEYBOARD AND MOUSE', [
       'WASD move   SHIFT sprint   C crouch   Q / E lean left / right (peek around corners)   mouse wheel or 1 / 2 swap weapon',
-      'Mouse aim   LEFT fire   RIGHT aim   R reload   V kick / melee',
+      'Mouse aim   LEFT fire   RIGHT aim   R reload   V kick / melee   MIDDLE click or Y mark where you look for your team',
       'F tap: open or close door, vault a broken window.   F hold: reinforce a marked wall (defenders, prep only) or barricade a door/window.',
       'G use gadget   T throw your grenade or set your trap   X launch or enter drone   Z cycle security cameras   TAB scoreboard   ESC pause',
       'Drone: a small RC car. WASD drive, mouse looks, SPACE hops (about knee high: over low furniture, up stairs), FIRE tags an enemy so your team sees them through walls. It can be shot, and a hard fall damages it.',
@@ -125,7 +125,7 @@ export class HelpScreen {
     ]);
     sec('TOUCH', [
       'Left thumb: move (push the stick to the rim to sprint). Right thumb: drag to look. FIRE is the big button, dragging it also aims.',
-      'AIM toggles sights, USE does door / reinforce / barricade (hold), KICK breaks barricades, GADGET uses your operator gadget, NADE throws your grenade or sets your trap.',
+      'AIM toggles sights, USE does door / reinforce / barricade (hold), KICK breaks barricades, GADGET uses your operator gadget, NADE throws your grenade or sets your trap, PING marks what you look at for your team.',
       'Add this page to your Home Screen for fullscreen play on iPhone.',
     ]);
     sec('TIPS', [

@@ -13,6 +13,7 @@ import { processInputs } from './systems/movementSystem';
 import { startMatch, updateRound, onPlayerLeft, applyPick, sandboxStart, spawnRoundPlayer } from './systems/roundSystem';
 import { updateGadgets } from './systems/gadgetSystem';
 import { updateThrowables } from './systems/throwSystem';
+import { markSpot } from './systems/markSystem';
 import { buildSnapshot } from './systems/visibilitySystem';
 import { debugCommand } from './systems/destructionSystem';
 import { updateBots } from './bots/botSystem';
@@ -328,6 +329,9 @@ export class Room {
         break;
       case 'PING':
         this.send(p, { t: 'PONG', c: msg.c, s: this.time });
+        break;
+      case 'MARK':
+        markSpot(this, p);
         break;
       case 'SET_TEAM':
         if (this.phase === PhaseId.LOBBY && !this.sandbox) {

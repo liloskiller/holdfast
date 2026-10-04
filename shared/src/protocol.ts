@@ -267,6 +267,7 @@ export function decodeClient(raw: string): ClientMsg | null {
       return { t: 'SET_SETTINGS', settings: sanitizeSettings(r['settings'] as Record<string, unknown>) };
     }
     case 'START_MATCH': return { t: 'START_MATCH' };
+    case 'MARK': return { t: 'MARK' };
     case 'LEAVE': return { t: 'LEAVE' };
     case 'CHAT': {
       const text = str(r['text'], 120);

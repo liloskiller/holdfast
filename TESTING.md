@@ -46,6 +46,9 @@ Targets: desktop Chrome, Android Chrome, iPhone Safari in the browser, iPhone Sa
 - [ ] Impact grenade explodes on first contact: tears a hole in plaster, breaks barricade planks and doors, hurts people nearby
 - [ ] Barbed wire: slows and nicks only the other team. Proximity alarm: the first attacker near it is marked for the defenders for 3 s, then it is used up
 
+### Team markers
+- [ ] Middle click (or Y, or the PING button on a phone) puts a diamond on what you look at for you and your teammates only: blue on a wall or floor, red when you hit an enemy. It shows the distance, sticks to the screen border when out of view and fades after 7 s. Works from the drone camera too
+
 ### Combat
 - [ ] Recoil: hold fire with the Carbine, the view climbs, pulling the mouse down keeps shots on target, releasing settles it. Crosshair widens during a spray and closes when you stop.
 - [ ] ADS speed: SMG snaps up, Marksman and Anvil take noticeably longer. Reload cancels aiming.

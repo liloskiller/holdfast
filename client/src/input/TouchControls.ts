@@ -27,6 +27,7 @@ const DEFS: BtnDef[] = [
   { id: 'gadget', label: 'GADGET', btn: Btn.GADGET, mode: 'tap', cls: 't-gadget', ctx: 'body' },
   { id: 'switch', label: 'SWAP', btn: 0, mode: 'tap', cls: 't-switch', ctx: 'body' },
   { id: 'drone', label: 'DRONE', btn: Btn.DRONE, mode: 'tap', cls: 't-drone' },
+  { id: 'mark', label: 'PING', btn: 0, mode: 'tap', cls: 't-mark', ctx: 'body' },
   { id: 'nade', label: 'NADE', btn: Btn.THROW, mode: 'tap', cls: 't-nade', ctx: 'body' },
   { id: 'cam', label: 'CAM', btn: Btn.CAMERA, mode: 'tap', cls: 't-cam', ctx: 'body' },
   { id: 'leanl', label: 'LEAN', btn: Btn.LEAN_L, mode: 'toggle', cls: 't-leanl', ctx: 'body' },
@@ -37,6 +38,7 @@ const DEFS: BtnDef[] = [
 export interface TouchHooks {
   onScoreboard(show: boolean): void;
   onPause(): void;
+  onMark(): void;
   haptic(ms: number): void;
 }
 
@@ -145,6 +147,10 @@ export class TouchControls {
       e.preventDefault();
       if (def.id === 'switch') {
         input.slot = input.slot ? 0 : 1;
+        return;
+      }
+      if (def.id === 'mark') {
+        this.hooks.onMark();
         return;
       }
       switch (def.mode) {

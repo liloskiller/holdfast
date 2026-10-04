@@ -66,6 +66,7 @@ Notes:
 | Use (door, vault, hold to reinforce or barricade) | F | USE |
 | Gadget | G | GADGET |
 | Grenade / trap (secondary gadget) | T | NADE |
+| Mark a spot or enemy for the team | Middle click or Y | PING |
 | Drone / camera | X / Z | DRONE / CAM |
 | Drone hop | Space | HOP |
 | Scoreboard / pause | Tab / Esc | SCORE / II |

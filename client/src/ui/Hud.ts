@@ -9,6 +9,17 @@ export interface CompassMarker {
   alpha: number;
 }
 
+/** A team marker on the screen: x and y are fractions of the screen. */
+export interface HudMark {
+  x: number;
+  y: number;
+  dist: number;
+  alpha: number;
+  enemy: boolean;
+  /** Off screen (or behind): pinned to the border. */
+  edge: boolean;
+}
+
 export interface HudModel {
   alive: boolean;
   hp: number;
@@ -54,6 +65,8 @@ export interface HudModel {
   spectating: string;
   markers: CompassMarker[];
   markerCount: number;
+  marks: HudMark[];
+  markCount: number;
   hideCrosshair: boolean;
   debug: string;
 }
@@ -64,7 +77,7 @@ export function emptyModel(): HudModel {
     gadgetLabel: '', gadgetUses: 0, gadgetCd: 0, thrLabel: '', thrCount: 0, thrCd: 0, flash: 0, reinf: 0, showReinf: false, timer: '', timerHot: false,
     phaseLabel: '', scoreFriend: 0, scoreFoe: 0, friendAlive: 0, foeAlive: 0, friendTotal: 0, foeTotal: 0,
     role: 'free', prompt: '', actProgress: 0, captureProgress: 0, crosshair: 6, ads: false, inDrone: false,
-    droneHp: 0, jammed: false, inCamera: false, charges: 0, sensor: 0, spectating: '', markers: [], markerCount: 0,
+    droneHp: 0, jammed: false, inCamera: false, charges: 0, sensor: 0, spectating: '', markers: [], markerCount: 0, marks: [], markCount: 0,
     hideCrosshair: false, debug: '',
   };
 }
@@ -74,6 +87,7 @@ const MAX_MARKERS = 24;
 export class Hud {
   readonly root: HTMLDivElement;
   private n: Record<string, HTMLElement> = {};
+  private worldMarks: HTMLElement[] = [];
   private markers: HTMLElement[] = [];
   private lastHp = -1;
   private killfeed: HTMLElement;
@@ -124,6 +138,12 @@ export class Hud {
     for (let i = 0; i < 4; i++) el('div', 'hm hm' + i, undefined, this.hit);
     this.n['prompt'] = el('div', 'hud-prompt hidden', '', root);
     this.n['flash'] = el('div', 'hud-flash', undefined, root);
+    for (let i = 0; i < 8; i++) {
+      const mk = el('div', 'world-mark hidden', undefined, root);
+      el('div', 'wm-icon', undefined, mk);
+      el('div', 'wm-dist', '', mk);
+      this.worldMarks.push(mk);
+    }
     this.n['act'] = el('div', 'hud-act hidden', undefined, root);
     this.n['actFill'] = el('div', 'fill', undefined, this.n['act']);
 
@@ -240,6 +260,21 @@ export class Hud {
     setClass(n['debug'] as HTMLElement, 'hidden', m.debug === '');
 
     this.updateMarkers(m.markers, m.markerCount);
+    for (let i = 0; i < this.worldMarks.length; i++) {
+      const node = this.worldMarks[i] as HTMLElement;
+      const wm = i < m.markCount && m.alive ? m.marks[i] : undefined;
+      if (!wm) {
+        if (!node.classList.contains('hidden')) node.classList.add('hidden');
+        continue;
+      }
+      node.classList.remove('hidden');
+      const cls = 'world-mark' + (wm.enemy ? ' enemy' : '') + (wm.edge ? ' edge' : '');
+      if (node.className !== cls) node.className = cls;
+      node.style.left = wm.x * 100 + '%';
+      node.style.top = wm.y * 100 + '%';
+      node.style.opacity = String(wm.alpha);
+      setText(node.lastElementChild as HTMLElement, Math.round(wm.dist) + ' m');
+    }
     this.lastHp = m.hp;
   }
 

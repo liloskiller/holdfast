@@ -86,6 +86,7 @@ export class App {
       onDebug: (cmd) => this.send({ t: 'DEBUG', cmd }),
       onLockChange: (locked) => this.onLockChange(locked),
       onSpectate: (dir) => this.game?.spectate(dir),
+      onMark: () => this.sendMark(),
     });
     this.pad = new GamepadControls(this.input, {
       onPause: () => this.togglePause(),
@@ -95,6 +96,7 @@ export class App {
     this.touch = new TouchControls(this.input, root, {
       onScoreboard: (show) => this.holdScoreboard(show),
       onPause: () => this.togglePause(),
+      onMark: () => this.sendMark(),
       haptic: (ms) => this.haptic(ms),
     });
 
@@ -282,6 +284,10 @@ export class App {
     const conn = new LoopbackConnection(safehouseText);
     this.attachTransport(conn);
     conn.send({ t: 'CREATE_ROOM', name: this.name(), solo: opts });
+  }
+
+  private sendMark(): void {
+    if (this.game && this.transport?.connected) this.send({ t: 'MARK' });
   }
 
   /** Tell the server how strong our recoil should be (it simulates it, so it has to know). */

@@ -346,6 +346,7 @@ export type GameEvent =
   | { k: 'msg'; text: string }
   | { k: 'melee'; id: number }
   | { k: 'tag'; id: number }
+  | { k: 'mark'; id: number; x: number; y: number; z: number; enemy: boolean }
   | { k: 'sense'; pts: number[] }
   | { k: 'spawn'; id: number; yaw: number }
   | { k: 'reset' };
@@ -403,6 +404,8 @@ export type ClientMsg =
   | { t: 'SPECTATE'; dir: number }
   | { t: 'SET_ASSIST'; recoil: number }
   | { t: 'DEBUG'; cmd: string; arg?: number }
+  /** Mark the spot (or enemy) in the middle of the screen for the team. */
+  | { t: 'MARK' }
   | { t: 'LEAVE' };
 
 export type ServerMsg =

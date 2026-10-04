@@ -16,7 +16,7 @@ import type { ClockSync } from '../net/ClockSync';
 import { Interpolator, makePose, type Pose } from '../net/Interpolation';
 import { Prediction } from '../net/Prediction';
 import { isTouchDevice, settings } from '../settings';
-import { emptyModel, type CompassMarker, type Hud, type HudModel } from '../ui/Hud';
+import { emptyModel, type CompassMarker, type Hud, type HudMark, type HudModel } from '../ui/Hud';
 import { Effects } from './Effects';
 import { EntityViews } from './EntityViews';
 import { PlayerView } from './PlayerView';
@@ -50,6 +50,7 @@ interface PingMarker {
 const FAR_SHOT = 160;
 const PROMPTS = ['', 'F  Open door', 'F  Close door', 'F  Vault', 'Hold F  Reinforce wall', 'Hold F  Barricade', 'G  Detonate charge', 'Hold F  Plant the defuser', 'Hold F  Disable the defuser'];
 const EYE_SMOOTH = 12;
+const MARK_LIFE_MS = 7000;
 
 export class Game {
   readonly renderer: Renderer;
@@ -59,6 +60,7 @@ export class Game {
   private entityViews: EntityViews;
   private viewmodel: Viewmodel;
   private lastFlash = 0;
+  private markV = new THREE.Vector3();
   private pred = new Prediction();
   private interp = new Interpolator();
   private playerViews = new Map<number, PlayerView>();
@@ -355,6 +357,13 @@ export class Game {
           this.viewRcP = this.viewRcY = 0;
         }
         break;
+      case 'mark': {
+        this.marks = this.marks.filter((mk) => mk.by !== ev.id);
+        this.marks.push({ x: ev.x, y: ev.y, z: ev.z, born: performance.now(), enemy: ev.enemy, by: ev.id });
+        if (this.marks.length > 8) this.marks.shift();
+        audio.ui('ping', ev.id === this.myId ? 0.35 : 0.6);
+        break;
+      }
       case 'tag':
         hud.toast('Enemy tagged');
         audio.ui('ping', 0.7);
@@ -876,6 +885,9 @@ export class Game {
   private friendAlive = 0;
   private foeAlive = 0;
   private markerPool: CompassMarker[] = [];
+  /** Team markers in the world (from the MARK button), newest last. */
+  private marks: { x: number; y: number; z: number; born: number; enemy: boolean; by: number }[] = [];
+  private markPool: HudMark[] = [];
   private baseVFov(): number {
     return this.renderer.verticalFov(settings.fov);
   }
@@ -1045,6 +1057,39 @@ export class Game {
     }
     m.markers = this.markerPool;
     m.markerCount = mc;
+
+    // team markers: project to the screen, those behind or off to the side stick to the edge
+    if (this.marks.length) this.marks = this.marks.filter((mk) => now - mk.born < MARK_LIFE_MS);
+    let nm = 0;
+    const cam = this.renderer.camera;
+    for (const mk of this.marks) {
+      const v = this.markV.set(mk.x, mk.y, mk.z);
+      const dist = Math.hypot(mk.x - cam.position.x, mk.y - cam.position.y, mk.z - cam.position.z);
+      v.project(cam);
+      let sx = v.x;
+      let sy = v.y;
+      if (v.z > 1) {
+        sx = -sx;
+        sy = -sy;
+      }
+      const edge = v.z > 1 || Math.abs(sx) > 0.94 || Math.abs(sy) > 0.9;
+      sx = clamp(sx, -0.94, 0.94);
+      sy = clamp(sy, -0.9, 0.9);
+      let hm = this.markPool[nm];
+      if (!hm) {
+        hm = { x: 0, y: 0, dist: 0, alpha: 1, enemy: false, edge: false };
+        this.markPool[nm] = hm;
+      }
+      nm++;
+      hm.x = sx * 0.5 + 0.5;
+      hm.y = 0.5 - sy * 0.5;
+      hm.dist = dist;
+      hm.alpha = clamp((MARK_LIFE_MS - (now - mk.born)) / 1500, 0, 1);
+      hm.enemy = mk.enemy;
+      hm.edge = edge;
+    }
+    m.marks = this.markPool;
+    m.markCount = nm;
 
     if (settings.showFps || new URLSearchParams(location.search).has('debug')) {
       const i = this.renderer.info();

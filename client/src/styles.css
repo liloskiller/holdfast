@@ -312,7 +312,14 @@ select.input { appearance: none; }
 .t-leanr { --w: calc(var(--u) * 1.0); --x: calc(var(--u) * 4.3); --y: calc(var(--u) * 3.15); font-size: calc(var(--u) * 0.17); }
 .t-leanl::before { content: '\2039 '; }
 .t-leanr::after { content: ' \203A'; }
+.world-mark { position: absolute; transform: translate(-50%, -50%); pointer-events: none; text-align: center; z-index: 5; }
+.world-mark.hidden { display: none; }
+.wm-icon { width: 16px; height: 16px; margin: 0 auto; border: 3px solid #4ac3ff; transform: rotate(45deg); background: rgba(74, 195, 255, 0.25); box-shadow: 0 0 6px #000; }
+.world-mark.enemy .wm-icon { border-color: #ff3b3b; background: rgba(255, 59, 59, 0.3); }
+.world-mark.edge .wm-icon { opacity: 0.8; }
+.wm-dist { font-size: 11px; font-weight: 800; color: #fff; text-shadow: 0 1px 3px #000; margin-top: 4px; }
 .hud-flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 30; }
+.t-mark { --w: calc(var(--u) * 1.0); --x: calc(var(--u) * 4.2); --y: calc(var(--u) * 4.5); font-size: calc(var(--u) * 0.19); border-color: #4ac3ff; }
 .t-nade { --w: calc(var(--u) * 1.1); --x: calc(var(--u) * 5.5); --y: calc(var(--u) * 4.4); font-size: calc(var(--u) * 0.19); border-color: #ffd23c; }
 .t-up { --w: calc(var(--u) * 1.5); --x: calc(var(--u) * 2.5); --y: calc(var(--u) * 1.6); }
 .t-small { width: calc(var(--u) * 1.1); height: calc(var(--u) * 0.7); border-radius: 10px; font-size: calc(var(--u) * 0.2); top: calc(var(--safe-t) + 8px); }
