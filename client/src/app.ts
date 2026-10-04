@@ -12,6 +12,7 @@ import { TouchControls } from './input/TouchControls';
 import { ClockSync } from './net/ClockSync';
 import { LoopbackConnection, WsConnection, type Transport } from './net/Connection';
 import { isTouchDevice, loadSettings, onSettingsChange, saveSettings, sessionGet, sessionSet, settings } from './settings';
+import { GamepadControls } from './input/Gamepad';
 import { Hud } from './ui/Hud';
 import { LobbyScreen } from './ui/LobbyScreen';
 import { Menu } from './ui/Menu';
@@ -31,6 +32,8 @@ export class App {
   private input = new InputState();
   private clock = new ClockSync();
   private kbm: KeyboardMouse;
+  private pad: GamepadControls;
+  private lastLoopT = 0;
   private touch: TouchControls;
   private touchDevice = isTouchDevice() || new URLSearchParams(location.search).has('touch');
 
@@ -84,6 +87,11 @@ export class App {
       onLockChange: (locked) => this.onLockChange(locked),
       onSpectate: (dir) => this.game?.spectate(dir),
     });
+    this.pad = new GamepadControls(this.input, {
+      onPause: () => this.togglePause(),
+      onScoreboard: (show) => this.holdScoreboard(show),
+      onUsed: () => this.updateInputMode(),
+    });
     this.touch = new TouchControls(this.input, root, {
       onScoreboard: (show) => this.holdScoreboard(show),
       onPause: () => this.togglePause(),
@@ -134,6 +142,7 @@ export class App {
     root.appendChild(this.rotate);
 
     onSettingsChange(() => {
+      this.sendAssist();
       this.renderer.applyQuality();
       this.audio.applyVolumes();
       this.touch.applySettings();
@@ -275,6 +284,11 @@ export class App {
     conn.send({ t: 'CREATE_ROOM', name: this.name(), solo: opts });
   }
 
+  /** Tell the server how strong our recoil should be (it simulates it, so it has to know). */
+  private sendAssist(): void {
+    if (this.transport?.connected) this.transport.send({ t: 'SET_ASSIST', recoil: settings.recoilAssist ? 0.6 : 1 });
+  }
+
   private async createRoom(): Promise<void> {
     this.audio.unlock();
     this.tryFullscreen();
@@ -394,6 +408,7 @@ export class App {
     this.code = m.code;
     this.room = m.room;
     this.phase = m.phase;
+    this.sendAssist();
     if (!this.practice) {
       sessionSet('hf.token', m.token);
       sessionSet('hf.code', m.code);
@@ -560,7 +575,7 @@ export class App {
     const modal = this.modalOpen !== 'none';
     this.touch.setActive(this.touchDevice && playing && !modal);
     this.kbm.setEnabled(!!this.game);
-    const showCtp = playing && !modal && !this.touchDevice && !this.kbm.isLocked;
+    const showCtp = playing && !modal && !this.touchDevice && !this.kbm.isLocked && !this.pad.used;
     this.ctp.show(showCtp);
   }
 
@@ -606,6 +621,9 @@ export class App {
   private loop(now: number): void {
     requestAnimationFrame((t) => this.loop(t));
     const g = this.game;
+    const dt = this.lastLoopT ? Math.min(0.1, (now - this.lastLoopT) / 1000) : 0;
+    this.lastLoopT = now;
+    this.pad.poll(dt, !!g && this.playing && this.modalOpen === 'none');
     if (g) {
       g.frame(now);
       this.tickUi();

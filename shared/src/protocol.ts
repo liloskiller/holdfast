@@ -269,6 +269,10 @@ export function decodeClient(raw: string): ClientMsg | null {
       const text = str(r['text'], 120);
       return text === null ? null : { t: 'CHAT', text };
     }
+    case 'SET_ASSIST': {
+      const recoil = num(r['recoil'], 0.4, 1);
+      return recoil === null ? null : { t: 'SET_ASSIST', recoil };
+    }
     case 'SPECTATE': {
       const dir = num(r['dir'], -1, 1);
       return dir === null ? null : { t: 'SPECTATE', dir: dir < 0 ? -1 : 1 };

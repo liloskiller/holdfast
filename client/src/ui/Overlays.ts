@@ -104,6 +104,9 @@ export class HelpScreen {
       'Drone: a small RC car. WASD drive, mouse looks, SPACE hops (about knee high: over low furniture, up stairs), FIRE tags an enemy so your team sees them through walls. It can be shot, and a hard fall damages it.',
       'Practice only: B blast a hole where you look   N reinforce the panel you look at   M reset world   K refill',
     ]);
+    sec('GAMEPAD', [
+      'Sticks move and look, RT fire, LT aim, A use, B crouch, X reload, Y swap, LB / RB lean, R3 kick, D-pad up gadget, down drone, left cameras, Back scoreboard, Start pause.',
+    ]);
     sec('TOUCH', [
       'Left thumb: move (push the stick to the rim to sprint). Right thumb: drag to look. FIRE is the big button, dragging it also aims.',
       'AIM toggles sights, USE does door / reinforce / barricade (hold), KICK breaks barricades, GADGET uses your operator gadget.',

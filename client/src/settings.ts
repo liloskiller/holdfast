@@ -9,6 +9,8 @@ export interface Settings {
   invertY: boolean;
   quality: Quality;
   aimAssist: boolean;
+  /** Weaker recoil (60 percent). On by default for touch, where pulling the aim down is harder. */
+  recoilAssist: boolean;
   master: number; // 0..1
   sfx: number; // 0..1
   touchScale: number; // 0.8 .. 1.4
@@ -40,6 +42,7 @@ export function defaultSettings(): Settings {
     invertY: false,
     quality: touch ? 'medium' : 'high',
     aimAssist: touch,
+    recoilAssist: touch,
     master: 0.8,
     sfx: 0.9,
     touchScale: 1.0,

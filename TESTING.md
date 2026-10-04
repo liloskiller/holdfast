@@ -58,6 +58,9 @@ Targets: desktop Chrome, Android Chrome, iPhone Safari in the browser, iPhone Sa
 - [ ] Mend darts heal a teammate; Aegis shield blocks bullets and can be vaulted
 - [ ] Snare trap slows and hurts only attackers; Eye cameras tag attackers
 
+### Gamepad (any standard controller)
+- [ ] Connect, press a button, then sticks move and look, RT fires, LT aims, LB / RB lean, Y swaps, Start pauses
+
 ### Phone specifics
 - [ ] Landscape layout comfortable on a 6 inch phone, no accidental browser gestures (pull to refresh, double tap zoom)
 - [ ] Left handed layout and button size settings work

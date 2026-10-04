@@ -363,6 +363,9 @@ export class Room {
       case 'SPECTATE':
         this.cycleSpectate(p, msg.dir);
         break;
+      case 'SET_ASSIST':
+        p.state.rcMul = Math.max(0.4, Math.min(1, msg.recoil));
+        break;
       case 'DEBUG':
         if (this.sandbox) debugCommand(this, p, msg.cmd);
         break;

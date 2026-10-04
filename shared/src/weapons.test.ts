@@ -296,6 +296,17 @@ describe('weapons', () => {
       expect(spreadDeg(def, s)).toBeLessThan(bloomed);
     });
 
+    it('the recoil assist option scales the kick', () => {
+      const w = arena();
+      const full = spawnState(5, 0, 5, 0, WeaponId.CARBINE);
+      const eased = spawnState(5, 0, 5, 0, WeaponId.CARBINE);
+      eased.rcMul = 0.5;
+      fire(full, w, 30);
+      fire(eased, w, 30);
+      expect(eased.rcP).toBeGreaterThan(0);
+      expect(eased.rcP).toBeLessThan(full.rcP * 0.65);
+    });
+
     it('is deterministic for identical input', () => {
       const w1 = arena();
       const w2 = arena();

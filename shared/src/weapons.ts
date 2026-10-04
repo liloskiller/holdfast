@@ -80,6 +80,7 @@ export function applyKick(s: PlayerState, def: WeaponDef): void {
   m *= 1 - 0.3 * s.adsAmt;
   if (s.vx * s.vx + s.vz * s.vz > 1) m *= 1.15;
   if (!s.onGround) m *= 1.5;
+  m *= s.rcMul;
   const noise = rand01(hash32(s.shotIdx, 0x7a1b + def.id), 0) * 2 - 1;
   const drift = Math.sin(i * 0.9 + def.id);
   s.rcP = Math.min(RECOIL_MAX, s.rcP + def.kickPitch * m);

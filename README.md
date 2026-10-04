@@ -69,6 +69,8 @@ Notes:
 | Scoreboard / pause | Tab / Esc | SCORE / II |
 | Practice tools | B blast, N reinforce, M reset, K refill | Pause menu |
 
+**Gamepad** (standard mapping, Xbox / PlayStation / most Bluetooth pads, used in matches and Practice; menus still need the mouse or touch): left stick move, L3 sprint, right stick look, RT fire, LT aim, A use (hops the drone), B crouch, X reload, Y swap weapon, LB / RB lean, R3 kick, D-pad up gadget, down drone, left cameras, Back scoreboard, Start pause. **Recoil assist** (settings, on by default for touch) makes the gun kick 40 percent weaker.
+
 Tap F near a **broken window** to vault through it. **Hold F** facing a marked wall panel to reinforce it (defenders, prep only) or facing a door or window to barricade it. Drone: a small RC car that drives on the floor (WASD, mouse to look), rolls over tiny lips and **hops** (Space) about knee high to get over low furniture and up stairs. It cannot fly, cannot pass one metre furniture, and a hard fall damages it. FIRE tags the enemy in your crosshair so your team sees them through walls for 8 seconds.
 
 **Leaning:** hold Q or E to put your head and shoulders out around a corner while your feet stay put. The server treats the leaned head as really being there (line of sight, shots and hit boxes), walls stop the lean, you walk slower while leaning and cannot lean while sprinting or in the air. Falling more than about 1.4 m hurts, a long fall kills.

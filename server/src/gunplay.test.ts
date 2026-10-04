@@ -109,6 +109,16 @@ describe('gunplay on the server', () => {
     expect(marksman).toBeGreaterThan(rattler);
   });
 
+  it('the recoil assist message is clamped and stored in the player state', () => {
+    const { room, a } = duel();
+    room.handleMessage(a, { t: 'SET_ASSIST', recoil: 0.6 });
+    expect(a.state.rcMul).toBe(0.6);
+    room.handleMessage(a, { t: 'SET_ASSIST', recoil: 0 });
+    expect(a.state.rcMul).toBe(0.4); // no recoil is not an option
+    room.handleMessage(a, { t: 'SET_ASSIST', recoil: 5 });
+    expect(a.state.rcMul).toBe(1);
+  });
+
   it('loadout: secondary picks are validated and applied to the spawned player', () => {
     const room = makeRoom();
     const a = addHuman(room, 'A', 0).p;

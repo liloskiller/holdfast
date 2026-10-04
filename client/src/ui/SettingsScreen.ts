@@ -61,6 +61,7 @@ export class SettingsScreen {
     this.toggle('Invert Y', () => settings.invertY, (v) => { settings.invertY = v; });
     this.toggle('Toggle aim (instead of hold)', () => settings.adsToggle, (v) => { settings.adsToggle = v; });
     this.toggle('Aim assist (touch)', () => settings.aimAssist, (v) => { settings.aimAssist = v; });
+    this.toggle('Recoil assist (weaker gun kick)', () => settings.recoilAssist, (v) => { settings.recoilAssist = v; });
     el('div', 'sgroup', 'GRAPHICS', this.body);
     const row = el('label', 'srow', undefined, this.body);
     el('span', '', 'Quality', row);
