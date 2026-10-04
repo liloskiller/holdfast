@@ -1,7 +1,7 @@
 // Hitscan with server side lag compensation, damage, melee and death.
 
 import {
-  DRONE, HITBOX, HitKind, KillCause, MAX_PELLETS, MaterialId, NET, PLAYER, SIEGE, buildShotRays, buildShotRaysFromState, damageFor,
+  DRONE, HITBOX, HitKind, KillCause, MAX_PELLETS, MaterialId, NET, PLAYER, SIEGE, buildShotRays, buildShotRaysFromState, damageFor, leanVec,
   eyeHeight, makeRayHit, operatorDef, rayAabb, raySphere, weaponDef,
   type RayHit,
 } from '@holdfast/shared';
@@ -12,7 +12,8 @@ import { destroyDrone, exitCamera, removeEntity } from './gadgetSystem';
 
 const rays = new Float64Array(MAX_PELLETS * 3);
 const hit: RayHit = makeRayHit();
-const tmpRew: Rewound = { x: 0, y: 0, z: 0, crouch: false };
+const tmpRew: Rewound = { x: 0, y: 0, z: 0, crouch: false, lean: 0, yaw: 0 };
+const leanTmp = { x: 0, y: 0, z: 0 };
 
 interface PlayerTarget {
   p: Player;
@@ -20,6 +21,10 @@ interface PlayerTarget {
   y: number;
   z: number;
   crouch: boolean;
+  /** Head shift caused by leaning (the shoulders move about a third as far). */
+  hx: number;
+  hy: number;
+  hz: number;
 }
 
 interface Pending {
@@ -41,9 +46,11 @@ const RANGE = 160;
 export function shoot(room: Room, shooter: Player, shotIdx: number, weaponId: number, clientTime: number, aim?: ShotAim): void {
   const def = weaponDef(weaponId);
   const s = shooter.state;
-  const ox = s.x;
-  const oy = s.y + eyeHeight(s);
-  const oz = s.z;
+  // shots start at the (possibly leaned) eye
+  const lv = leanVec(s.yaw, s.lean, leanTmp);
+  const ox = s.x + lv.x;
+  const oy = s.y + eyeHeight(s) + lv.y;
+  const oz = s.z + lv.z;
   if (aim) buildShotRays(aim.yaw, aim.pitch, aim.spread, shooter.id, shotIdx, def, rays);
   else buildShotRaysFromState(s, shooter.id, shotIdx, def, rays);
 
@@ -59,7 +66,8 @@ export function shoot(room: Room, shooter: Player, shotIdx: number, weaponId: nu
     if (o === shooter || !o.state.alive) continue;
     if (o.team === shooter.team && !room.settings.friendlyFire) continue;
     o.rewind(tr, tmpRew);
-    targets.push({ p: o, x: tmpRew.x, y: tmpRew.y, z: tmpRew.z, crouch: tmpRew.crouch });
+    const tl = leanVec(tmpRew.yaw, tmpRew.lean, leanTmp);
+    targets.push({ p: o, x: tmpRew.x, y: tmpRew.y, z: tmpRew.z, crouch: tmpRew.crouch, hx: tl.x, hy: tl.y, hz: tl.z });
   }
 
   const pending = new Map<number, Pending>();
@@ -95,11 +103,13 @@ export function shoot(room: Room, shooter: Player, shotIdx: number, weaponId: nu
       let bestEntity: Entity | null = null;
       for (const t of targets) {
         const eye = t.crouch ? PLAYER.eyeCrouch : PLAYER.eyeStand;
-        const th = raySphere(cx, cy, cz, dx, dy, dz, t.x, t.y + eye - HITBOX.headDropFromEye, t.z, HITBOX.headRadius, bestT);
+        const th = raySphere(cx, cy, cz, dx, dy, dz, t.x + t.hx, t.y + t.hy + eye - HITBOX.headDropFromEye, t.z + t.hz, HITBOX.headRadius, bestT);
+        const bx = t.x + t.hx * 0.3;
+        const bz = t.z + t.hz * 0.3;
         const tb = rayAabb(
           cx, cy, cz, dx, dy, dz,
-          t.x - HITBOX.bodyHalf, t.y, t.z - HITBOX.bodyHalf,
-          t.x + HITBOX.bodyHalf, t.y + eye - HITBOX.bodyTopFromEye, t.z + HITBOX.bodyHalf, bestT,
+          bx - HITBOX.bodyHalf, t.y, bz - HITBOX.bodyHalf,
+          bx + HITBOX.bodyHalf, t.y + eye - HITBOX.bodyTopFromEye, bz + HITBOX.bodyHalf, bestT,
         );
         if (th >= 0 && th <= bestT && (tb < 0 || th <= tb + 0.02)) {
           bestT = th; bestPlayer = t; bestHead = true; bestLeg = false; bestDrone = null; bestEntity = null;

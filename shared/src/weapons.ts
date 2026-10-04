@@ -53,6 +53,7 @@ export function resetLoadout(s: PlayerState, primary: number, sidearm: number = 
   s.spray = 0;
   s.burstLeft = 0;
   s.fireBuf = 0;
+  s.lean = 0;
 }
 
 /** Spread cone half angle in degrees for the current state (before the shot that is being fired). */

@@ -1,9 +1,9 @@
 // Drains each player's input queue through the shared deterministic step.
 
-import { SIM_DT, makeStepOut, stepPlayer, OperatorId, type InputCmd } from '@holdfast/shared';
+import { FALL, KillCause, SIM_DT, makeStepOut, stepPlayer, OperatorId, type InputCmd } from '@holdfast/shared';
 import type { Room } from '../Room';
 import type { Player } from '../Player';
-import { melee, shoot } from './combatSystem';
+import { applyDamage, melee, shoot } from './combatSystem';
 import { processInteract } from './destructionSystem';
 import { cycleCamera, destroyDrone, droneButton, droneTag, useGadget } from './gadgetSystem';
 import { spawnRoundPlayer } from './roundSystem';
@@ -39,6 +39,11 @@ function applyCmd(room: Room, p: Player, cmd: InputCmd): void {
   p.lastSeq = cmd.seq;
   p.lastCmdTime = cmd.clientTime;
   if (!wasAlive || !s.alive) return;
+  if (out.landSpeed > FALL.safe) {
+    applyDamage(room, p, null, Math.round((out.landSpeed - FALL.safe) * FALL.perMps), false, KillCause.FALL);
+    if (!s.alive) return;
+  }
+  if (out.landSpeed > 3) room.sound('step', s.x, s.y + 0.1, s.z, 10, p.id, p.team);
   if (out.droneHop) room.sound('drone', s.dx, s.dy, s.dz, 6, p.id, p.team);
   if (s.dDeployed && s.dhp <= 0) destroyDrone(room, p, null); // a hard landing broke it
 

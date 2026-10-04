@@ -22,6 +22,8 @@ export const Btn = {
   UP: 1 << 10, // hop (drone only)
   DOWN: 1 << 11, // unused, kept so the wire format stays stable
   CAMERA: 1 << 12,
+  LEAN_L: 1 << 13,
+  LEAN_R: 1 << 14,
 } as const;
 
 export interface InputCmd {
@@ -100,6 +102,7 @@ export interface PlayerState {
   spray: number; // consecutive shots in the current spray
   burstLeft: number; // shots still to fire in the current burst
   fireBuf: number; // a click made during the cooldown is remembered for a moment
+  lean: number; // -1 full left .. 1 full right
   // use button tracking
   useHeld: number;
   prevButtons: number;
@@ -131,7 +134,7 @@ const STATE_KEYS: readonly (keyof PlayerState)[] = [
   'x', 'y', 'z', 'vx', 'vy', 'vz', 'yaw', 'pitch', 'crouch', 'onGround', 'sprint', 'ads',
   'vault', 'vfx', 'vfy', 'vfz', 'vtx', 'vty', 'vtz',
   'slot', 'w0', 'w1', 'ammo0', 'ammo1', 'res0', 'res1', 'reloading', 'reload', 'reloadMax', 'reloadTac', 'cooldown', 'shotIdx',
-  'adsAmt', 'rcP', 'rcY', 'bloom', 'sinceShot', 'spray', 'burstLeft', 'fireBuf',
+  'adsAmt', 'rcP', 'rcY', 'bloom', 'sinceShot', 'spray', 'burstLeft', 'fireBuf', 'lean',
   'useHeld', 'prevButtons',
   'dDeployed', 'dCtl', 'dx', 'dy', 'dz', 'dvx', 'dvy', 'dvz', 'dhp', 'cam',
   'slow', 'confined', 'spdMul', 'alive', 'hp',
@@ -146,7 +149,7 @@ export function createPlayerState(): PlayerState {
     vault: 0, vfx: 0, vfy: 0, vfz: 0, vtx: 0, vty: 0, vtz: 0,
     slot: 0, w0: 0, w1: 4, ammo0: 0, ammo1: 0, res0: 0, res1: 0,
     reloading: false, reload: 0, reloadMax: 0, reloadTac: false, cooldown: 0, shotIdx: 0,
-    adsAmt: 0, rcP: 0, rcY: 0, bloom: 0, sinceShot: 9, spray: 0, burstLeft: 0, fireBuf: 0,
+    adsAmt: 0, rcP: 0, rcY: 0, bloom: 0, sinceShot: 9, spray: 0, burstLeft: 0, fireBuf: 0, lean: 0,
     useHeld: 0, prevButtons: 0,
     dDeployed: false, dCtl: false, dx: 0, dy: 0, dz: 0, dvx: 0, dvy: 0, dvz: 0, dhp: 0, cam: false,
     slow: 0, confined: false, spdMul: 1, alive: true, hp: PLAYER.maxHp,
@@ -262,6 +265,8 @@ export const PFlag = {
   TAGGED: 32,
   DRONE: 64,
   RELOAD: 128,
+  LEAN_L: 256,
+  LEAN_R: 512,
 } as const;
 
 export interface PlayerSnap {

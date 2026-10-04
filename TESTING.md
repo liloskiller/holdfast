@@ -17,7 +17,7 @@ Targets: desktop Chrome, Android Chrome, iPhone Safari in the browser, iPhone Sa
 ### Movement and map (Practice)
 - [ ] Spawn outside, walk to the house, open a door with E, walk through every room on both floors
 - [ ] No wall clipping, stairs climb and descend smoothly, crouch fits under low gaps
-- [ ] Break a window (shoot it), tap E next to it to vault through
+- [ ] Break a window (shoot it), tap F next to it to vault through
 - [ ] Shoot a plaster wall: cells wear down and vanish; shoot concrete: nothing happens
 - [ ] Press N on a marked panel (red/brown R wall): it turns to metal and ignores bullets; B blasts it anyway
 - [ ] Shoot a floor hatch from below and from above, drop through it
@@ -28,6 +28,8 @@ Targets: desktop Chrome, Android Chrome, iPhone Safari in the browser, iPhone Sa
 - [ ] Reload: with rounds left it ends on 30+1 and is quicker than an empty reload. Shotgun loads shell by shell and firing interrupts it.
 - [ ] Talon fires exactly 3 rounds per click. Whisper does not light up the compass of an enemy at range.
 - [ ] Legs do less damage than the body, headshots with Marksman / Sidearm / Magnum kill in one hit.
+- [ ] Lean with Q / E: view rolls and shifts, a peeking head is hittable around a corner, you cannot lean into a wall
+- [ ] A drop of two floors hurts a lot, a step down does not
 - [ ] Targets die, kill feed shows, hit marker and headshot sound differ
 - [ ] Reload, swap weapons, ADS, kick a barricade
 - [ ] Tracers, sparks and ejected shells appear, no stutter when firing a shotgun

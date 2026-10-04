@@ -20,6 +20,8 @@ export interface VmInput {
   lookDY: number;
   onGround: boolean;
   crouch: boolean;
+  /** -1 left .. 1 right. The viewmodel rolls with the view and slides a little the other way. */
+  lean: number;
 }
 
 interface ReloadPose {
@@ -48,6 +50,8 @@ function tri(t: number): number {
 
 export class Viewmodel {
   readonly root = new THREE.Group();
+  /** Rotates the whole viewmodel around the camera (leaning rolls the view). */
+  private pivot = new THREE.Group();
   private gun = new THREE.Group();
   private flash: THREE.Mesh;
   private flash2: THREE.Mesh;
@@ -94,7 +98,8 @@ export class Viewmodel {
     this.gun.add(this.flash, this.flash2);
     this.accent = accent;
     this.buildHands();
-    scene.add(this.root);
+    this.pivot.add(this.root);
+    scene.add(this.pivot);
     this.setWeapon(0);
   }
 
@@ -226,6 +231,7 @@ export class Viewmodel {
   private rp: ReloadPose = { tiltX: 0, tiltZ: 0, dropY: 0, magOffY: 0, magVisible: true, hand: new THREE.Vector3(), slideBack: 0 };
 
   update(dt: number, i: VmInput, visible: boolean): void {
+    this.pivot.visible = visible;
     this.root.visible = visible;
     const m = this.model;
     if (!visible || !m) return;
@@ -270,7 +276,8 @@ export class Viewmodel {
     const x = HIP.x + (adsX - HIP.x) * k + bx + this.swayX;
     const y = HIP.y + (adsY - HIP.y) * k - by + this.swayY - this.reloadAnim * 0.05 - rp.dropY - this.switchT * 0.3 - this.dip - (i.crouch ? 0.008 : 0);
     const z = HIP.z + (adsZ - HIP.z) * k + this.kick * 0.07 + (this.meleeT > 0 ? -Math.sin((this.meleeT / 0.3) * Math.PI) * 0.18 : 0);
-    this.root.position.set(x, y, z);
+    this.root.position.set(x - i.lean * 0.03, y, z);
+    this.pivot.rotation.z = -i.lean * 0.26;
     this.gun.rotation.set(
       this.kick * 0.55 + rp.tiltX - this.sprintT * 0.35 + this.switchT * 0.7 + (this.meleeT > 0 ? Math.sin((this.meleeT / 0.3) * Math.PI) * 0.6 : 0),
       this.sprintT * 0.6 - this.swayX * 1.5,

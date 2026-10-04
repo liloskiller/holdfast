@@ -12,6 +12,8 @@ export interface Rewound {
   y: number;
   z: number;
   crouch: boolean;
+  lean: number;
+  yaw: number;
 }
 
 export class Player {
@@ -44,6 +46,8 @@ export class Player {
   private histY = new Float32Array(HIST);
   private histZ = new Float32Array(HIST);
   private histC = new Uint8Array(HIST);
+  private histL = new Float32Array(HIST);
+  private histYaw = new Float32Array(HIST);
   private histHead = 0;
   private histCount = 0;
 
@@ -101,6 +105,8 @@ export class Player {
     this.histY[i] = s.y;
     this.histZ[i] = s.z;
     this.histC[i] = s.crouch ? 1 : 0;
+    this.histL[i] = s.lean;
+    this.histYaw[i] = s.yaw;
     this.histHead = (i + 1) % HIST;
     if (this.histCount < HIST) this.histCount++;
   }
@@ -117,6 +123,8 @@ export class Player {
     out.y = s.y;
     out.z = s.z;
     out.crouch = s.crouch;
+    out.lean = s.lean;
+    out.yaw = s.yaw;
     const n = this.histCount;
     if (n === 0) return out;
     const newest = (this.histHead - 1 + HIST) % HIST;
@@ -132,6 +140,8 @@ export class Player {
         out.y = (this.histY[lo] as number) + ((this.histY[hi] as number) - (this.histY[lo] as number)) * f;
         out.z = (this.histZ[lo] as number) + ((this.histZ[hi] as number) - (this.histZ[lo] as number)) * f;
         out.crouch = f < 0.5 ? this.histC[lo] === 1 : this.histC[hi] === 1;
+        out.lean = (this.histL[lo] as number) + ((this.histL[hi] as number) - (this.histL[lo] as number)) * f;
+        out.yaw = f < 0.5 ? (this.histYaw[lo] as number) : (this.histYaw[hi] as number);
         return out;
       }
     }
@@ -141,6 +151,8 @@ export class Player {
     out.y = this.histY[oldest] as number;
     out.z = this.histZ[oldest] as number;
     out.crouch = this.histC[oldest] === 1;
+    out.lean = this.histL[oldest] as number;
+    out.yaw = this.histYaw[oldest] as number;
     return out;
   }
 

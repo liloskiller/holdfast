@@ -4,11 +4,27 @@
 import * as THREE from 'three';
 import { COLORS, PFlag, weaponDef } from '@holdfast/shared';
 import { buildGun } from './gunModels';
-import { basicMat, box } from './geo';
+import { basicMat, box, shadedBox } from './geo';
 import type { Pose } from '../net/Interpolation';
 
 const ARMOR = 0x3b4047;
 const DARK = 0x1b1e22;
+/** Grip position of the held gun, relative to the shoulder pivot. */
+const GRIP = new THREE.Vector3(0.17, -0.09, -0.3);
+const SHOULDER_R = new THREE.Vector3(0.3, 0, 0);
+const SHOULDER_L = new THREE.Vector3(-0.3, 0, 0);
+const GUN_SCALE = 0.9;
+const UP_Z = new THREE.Vector3(0, 0, 1);
+const tmpDir = new THREE.Vector3();
+
+/** Stretch a unit box from a to b (same space as the mesh's parent). */
+function placeLimb(mesh: THREE.Mesh, a: THREE.Vector3, b: THREE.Vector3, thick: number): void {
+  tmpDir.subVectors(b, a);
+  const len = Math.max(0.01, tmpDir.length());
+  mesh.position.copy(a).addScaledVector(tmpDir, 0.5);
+  mesh.scale.set(thick, thick, len);
+  mesh.quaternion.setFromUnitVectors(UP_Z, tmpDir.multiplyScalar(1 / len));
+}
 
 function makeNameTag(name: string, color: number): THREE.Sprite {
   const c = document.createElement('canvas');
@@ -55,8 +71,12 @@ export class PlayerView {
   readonly root = new THREE.Group();
   private upper = new THREE.Group();
   private head = new THREE.Group();
-  private armR = new THREE.Group();
-  private armL = new THREE.Group();
+  /** Shoulder height pivot. The gun and both arms live in here and follow the look pitch. */
+  private aim = new THREE.Group();
+  private limbR: THREE.Mesh;
+  private limbL: THREE.Mesh;
+  private handR: THREE.Mesh;
+  private handL: THREE.Mesh;
   private legL: THREE.Mesh;
   private legR: THREE.Mesh;
   private gun = new THREE.Group();
@@ -72,6 +92,8 @@ export class PlayerView {
   private flash: THREE.Mesh;
   private flashT = 0;
   private meleeT = 0;
+  private tmp = new THREE.Vector3();
+  private leanVis = 0;
   speed = 0;
 
   constructor(readonly id: number, readonly name: string, friendly: boolean, teamColor: number) {
@@ -100,15 +122,16 @@ export class PlayerView {
     this.head.add(skull, this.visor);
     this.upper.add(this.head);
 
-    // arms: pivot at shoulder
-    this.armR.position.set(0.31, 0.56, 0);
-    this.armR.add(box(0.12, 0.5, 0.12, ARMOR, 0, -0.22, 0));
-    this.armL.position.set(-0.31, 0.56, 0);
-    this.armL.add(box(0.12, 0.5, 0.12, ARMOR, 0, -0.22, 0));
-    this.upper.add(this.armR, this.armL);
-
-    this.gun.position.set(0, -0.42, -0.1);
-    this.armR.add(this.gun);
+    // arms and gun: the gun is held in front of the chest and the arms reach for the grip and foregrip
+    this.aim.position.set(0, 0.56, 0);
+    this.upper.add(this.aim);
+    this.gun.position.copy(GRIP);
+    this.aim.add(this.gun);
+    this.limbR = new THREE.Mesh(shadedBox(1, 1, 1), basicMat(ARMOR));
+    this.limbL = new THREE.Mesh(shadedBox(1, 1, 1), basicMat(ARMOR));
+    this.handR = box(0.1, 0.1, 0.1, DARK);
+    this.handL = box(0.1, 0.1, 0.1, DARK);
+    this.aim.add(this.limbR, this.limbL, this.handR, this.handL);
 
     this.flash = new THREE.Mesh(
       new THREE.PlaneGeometry(0.3, 0.3),
@@ -161,10 +184,17 @@ export class PlayerView {
     });
     const def = weaponDef(id);
     const m = buildGun(def);
-    m.group.scale.setScalar(0.9);
+    m.group.scale.setScalar(GUN_SCALE);
     this.gun.add(m.group);
-    this.flash.position.copy(m.muzzle).multiplyScalar(0.9);
+    this.flash.position.copy(m.muzzle).multiplyScalar(GUN_SCALE);
     this.flash.scale.setScalar(def.suppressed ? 0.25 : 1);
+    // hands on the grip and on the foregrip, arms stretched between shoulders and hands
+    const gripPoint = this.tmp.set(GRIP.x, GRIP.y - 0.02, GRIP.z).clone();
+    const fore = this.tmp.set(GRIP.x, GRIP.y, GRIP.z).add(m.leftHand.clone().multiplyScalar(GUN_SCALE)).clone();
+    this.handR.position.copy(gripPoint);
+    this.handL.position.copy(fore);
+    placeLimb(this.limbR, SHOULDER_R, gripPoint, 0.11);
+    placeLimb(this.limbL, SHOULDER_L, fore, 0.11);
   }
 
   setTeamColor(c: number): void {
@@ -208,13 +238,17 @@ export class PlayerView {
     // aim: right arm and head follow pitch
     const aim = pose.pitch;
     this.head.rotation.x = aim * 0.8;
-    let armR = -(1.35 - aim * 0.9);
+    let lift = aim * 0.9;
     if (this.meleeT > 0) {
       this.meleeT -= dt;
-      armR += Math.sin((this.meleeT / 0.25) * Math.PI) * 1.1;
+      lift += Math.sin((this.meleeT / 0.25) * Math.PI) * 0.9;
     }
-    this.armR.rotation.x = armR;
-    this.armL.rotation.x = -(1.2 - aim * 0.9);
+    this.aim.rotation.x = lift;
+    // lean: tilt the upper body about the waist and slide it out (smoothed, the flag only gives the direction)
+    const leanWant = (f & PFlag.LEAN_R) !== 0 ? 1 : (f & PFlag.LEAN_L) !== 0 ? -1 : 0;
+    this.leanVis += (leanWant - this.leanVis) * Math.min(1, dt * 12);
+    this.upper.rotation.z = -this.leanVis * 0.32;
+    this.upper.position.x = this.leanVis * 0.14;
     this.setWeapon(pose.weapon);
 
     this.tag.visible = (f & PFlag.TAGGED) !== 0;

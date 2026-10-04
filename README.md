@@ -57,16 +57,19 @@ Notes:
 | Move / sprint | WASD / Shift | Left stick (push to the rim to sprint) |
 | Look | Mouse | Drag the right side |
 | Fire / aim | Left / right mouse | FIRE (drag it to aim) / AIM |
-| Reload, swap, kick | R, 1 / 2 / Q, V | RELOAD, SWAP, KICK |
+| Reload, swap, kick | R, 1 / 2 or mouse wheel, V | RELOAD, SWAP, KICK |
+| Lean (peek around corners) | Q / E | LEAN buttons |
 | Crouch | C (toggle), Ctrl (hold) | CROUCH |
-| Use (door, vault, hold to reinforce or barricade) | E | USE |
-| Gadget | F | GADGET |
+| Use (door, vault, hold to reinforce or barricade) | F | USE |
+| Gadget | G | GADGET |
 | Drone / camera | X / Z | DRONE / CAM |
 | Drone hop | Space | HOP |
 | Scoreboard / pause | Tab / Esc | SCORE / II |
 | Practice tools | B blast, N reinforce, M reset, K refill | Pause menu |
 
-Tap E near a **broken window** to vault through it. **Hold E** facing a marked wall panel to reinforce it (defenders, prep only) or facing a door or window to barricade it. Drone: a small RC car that drives on the floor (WASD, mouse to look), rolls over tiny lips and **hops** (Space) about knee high to get over low furniture and up stairs. It cannot fly, cannot pass one metre furniture, and a hard fall damages it. FIRE tags the enemy in your crosshair so your team sees them through walls for 8 seconds.
+Tap F near a **broken window** to vault through it. **Hold F** facing a marked wall panel to reinforce it (defenders, prep only) or facing a door or window to barricade it. Drone: a small RC car that drives on the floor (WASD, mouse to look), rolls over tiny lips and **hops** (Space) about knee high to get over low furniture and up stairs. It cannot fly, cannot pass one metre furniture, and a hard fall damages it. FIRE tags the enemy in your crosshair so your team sees them through walls for 8 seconds.
+
+**Leaning:** hold Q or E to put your head and shoulders out around a corner while your feet stay put. The server treats the leaned head as really being there (line of sight, shots and hit boxes), walls stop the lean, you walk slower while leaning and cannot lean while sprinting or in the air. Falling more than about 1.4 m hurts, a long fall kills.
 
 ## How a match works
 

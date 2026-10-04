@@ -2,7 +2,7 @@
 // legitimately know them (line of sight, tag, or very close), which also cuts bandwidth.
 
 import {
-  DRONE, EntityKind, NET, PFlag, stateToArray, makeExtra, eyeHeight, PhaseId,
+  DRONE, EntityKind, NET, PFlag, leanVec, stateToArray, makeExtra, eyeHeight, PhaseId,
   type EntitySnap, type GameEvent, type PlayerSnap, type SelfExtra, type Snapshot, type WorldDiff,
 } from '@holdfast/shared';
 import type { Player } from '../Player';
@@ -34,15 +34,20 @@ function eyeOf(room: Room, p: Player): Eye {
     const e = room.entities.get(p.cameras[p.camIdx] ?? -1);
     if (e) return { x: e.x, y: e.y, z: e.z };
   }
-  return { x: s.x, y: s.y + eyeHeight(s), z: s.z };
+  const lv = leanVec(s.yaw, s.lean, leanTmp);
+  return { x: s.x + lv.x, y: s.y + eyeHeight(s) + lv.y, z: s.z + lv.z };
 }
+
+const leanTmp = { x: 0, y: 0, z: 0 };
 
 function canSeePlayer(room: Room, eye: Eye, o: Player): boolean {
   const s = o.state;
   const h = eyeHeight(s);
   const w = room.world;
+  // a leaned head sticks out sideways, which is exactly what lets someone peek around a corner
+  const lv = leanVec(s.yaw, s.lean, leanTmp);
   return (
-    w.lineOfSight(eye.x, eye.y, eye.z, s.x, s.y + h - 0.1, s.z) ||
+    w.lineOfSight(eye.x, eye.y, eye.z, s.x + lv.x, s.y + h - 0.1 + lv.y, s.z + lv.z) ||
     w.lineOfSight(eye.x, eye.y, eye.z, s.x, s.y + h * 0.55, s.z) ||
     w.lineOfSight(eye.x, eye.y, eye.z, s.x, s.y + 0.25, s.z)
   );
@@ -59,6 +64,8 @@ function flagsOf(room: Room, o: Player, viewerTeam: number): number {
   if (o.team !== viewerTeam && o.isTaggedFor(viewerTeam, room.time)) f |= PFlag.TAGGED;
   if (s.dCtl) f |= PFlag.DRONE;
   if (s.reloading) f |= PFlag.RELOAD;
+  if (s.lean > 0.25) f |= PFlag.LEAN_R;
+  else if (s.lean < -0.25) f |= PFlag.LEAN_L;
   return f;
 }
 

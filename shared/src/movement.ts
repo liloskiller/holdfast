@@ -2,7 +2,8 @@
 // No Date, no Math.random, no DOM, no Three.js.
 
 import { BOX_STRIDE, clipAxis } from './collision';
-import { DRONE, PLAYER, TILE } from './constants';
+import { DRONE, LEAN, PLAYER, TILE } from './constants';
+import { leanReach } from './lean';
 import { clamp } from './math';
 import { Btn, type InputCmd, type PlayerState } from './types';
 import { ammoCap, applyKick, burstInterval, fireInterval, settleRecoil, spreadDeg, weaponDef } from './weapons';
@@ -33,13 +34,15 @@ export interface StepOut {
   droneHop: boolean;
   /** Downward speed (m/s) when the drone landed this step, else 0. */
   droneLand: number;
+  /** Downward speed (m/s) when the player body landed this step, else 0 (fall damage, landing thud). */
+  landSpeed: number;
 }
 
 export function makeStepOut(): StepOut {
   return {
     fired: false, shotIdx: 0, weapon: 0, aimYaw: 0, aimPitch: 0, spread: 0, reloadStarted: false, switched: false, vaultStarted: false,
     tapUse: false, droneToggled: false, dronePressed: false, meleePressed: false, gadgetPressed: false, firePressed: false,
-    cameraPressed: false, droneHop: false, droneLand: 0,
+    cameraPressed: false, droneHop: false, droneLand: 0, landSpeed: 0,
   };
 }
 
@@ -83,7 +86,7 @@ function moveHorizontal(s: PlayerState, world: World, axis: 0 | 2, delta: number
   return allowed;
 }
 
-function snapOrFall(s: PlayerState, world: World, wasGround: boolean, dt: number): void {
+function snapOrFall(s: PlayerState, world: World, wasGround: boolean, dt: number, out: StepOut): void {
   const r = PLAYER.radius;
   const h = height(s);
   if (wasGround && s.vy <= 0.01) {
@@ -105,7 +108,10 @@ function snapOrFall(s: PlayerState, world: World, wasGround: boolean, dt: number
   const allowed = clipAxis(s.x - r, s.y, s.z - r, s.x + r, s.y + h, s.z + r, 1, dy, buf, n, SKIN);
   s.y += allowed;
   if (Math.abs(allowed - dy) > 1e-9) {
-    if (dy < 0) s.onGround = true;
+    if (dy < 0) {
+      s.onGround = true;
+      out.landSpeed = -s.vy;
+    }
     s.vy = 0;
   } else {
     s.onGround = false;
@@ -268,6 +274,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
   out.cameraPressed = false;
   out.droneHop = false;
   out.droneLand = 0;
+  out.landSpeed = 0;
 
   const buttons = cmd.buttons;
   const prev = s.prevButtons;
@@ -281,6 +288,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     s.ads = false;
     s.adsAmt = 0;
     s.burstLeft = 0;
+    s.lean = 0;
     s.yaw = cmd.yaw;
     s.pitch = cmd.pitch;
     return;
@@ -326,8 +334,9 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     s.sprint = false;
     s.ads = false;
     s.adsAmt = Math.max(0, s.adsAmt - dt * 8);
+    s.lean = 0;
     stepDrone(s, world, dt, cmd.moveX, cmd.moveZ, cmd.yaw, (pressed & Btn.UP) !== 0, out);
-    snapOrFall(s, world, s.onGround, dt);
+    snapOrFall(s, world, s.onGround, dt, out);
     return;
   }
 
@@ -337,7 +346,8 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     s.sprint = false;
     s.ads = false;
     s.adsAmt = Math.max(0, s.adsAmt - dt * 8);
-    snapOrFall(s, world, s.onGround, dt);
+    s.lean = 0;
+    snapOrFall(s, world, s.onGround, dt, out);
     return;
   }
 
@@ -354,6 +364,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     s.sprint = false;
     s.ads = false;
     s.adsAmt = Math.max(0, s.adsAmt - dt * 8);
+    s.lean = 0;
     if (s.vault <= 0) {
       s.vault = 0;
       s.x = s.vtx;
@@ -370,6 +381,18 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     s.crouch = true;
   } else if (!wantCrouch && s.crouch) {
     if (world.standingFree(s.x, s.y, s.z, PLAYER.heightStand)) s.crouch = false;
+  }
+
+  // ---- Lean: the head moves out around a corner, held geometry limits how far ----
+  {
+    const want = ((buttons & Btn.LEAN_R) !== 0 ? 1 : 0) - ((buttons & Btn.LEAN_L) !== 0 ? 1 : 0);
+    let target = 0;
+    if (want !== 0 && s.onGround && !s.sprint) {
+      target = want * leanReach((a, b, c, d, e, f) => world.boxFree(a, b, c, d, e, f), s.x, s.y, s.z, s.yaw, s.crouch, want);
+    }
+    const step = LEAN.rate * dt;
+    const diff = target - s.lean;
+    s.lean = Math.abs(diff) <= step ? target : s.lean + Math.sign(diff) * step;
   }
 
   // ---- Vault start ----
@@ -417,6 +440,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
   let speed = s.crouch ? PLAYER.crouchSpeed : s.sprint ? PLAYER.sprint : PLAYER.walk;
   speed *= 1 + (def.adsMoveMul - 1) * s.adsAmt;
   speed *= def.moveMul;
+  speed *= 1 - (1 - LEAN.speedMul) * Math.abs(s.lean);
   if (s.slow > 0) speed *= 0.3;
   speed *= s.spdMul;
 
@@ -441,7 +465,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
   if (Math.abs(movedX) < Math.abs(s.vx * dt) - 1e-5) s.vx = 0;
   const movedZ = moveHorizontal(s, world, 2, s.vz * dt, canStep);
   if (Math.abs(movedZ) < Math.abs(s.vz * dt) - 1e-5) s.vz = 0;
-  snapOrFall(s, world, wasGround, dt);
+  snapOrFall(s, world, wasGround, dt, out);
   if (s.confined) confine(s, world);
 
   // ---- Weapon handling ----

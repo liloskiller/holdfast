@@ -148,7 +148,7 @@ function decodeCmd(a: unknown): InputCmd | null {
     moveZ: Math.max(-1, Math.min(1, (n[2] as number) / 100)),
     yaw: (n[3] as number) / 10000,
     pitch: Math.max(-1.5, Math.min(1.5, (n[4] as number) / 10000)),
-    buttons: (n[5] as number) & 0x1fff,
+    buttons: (n[5] as number) & 0x7fff,
     clientTime: n[6] as number,
     slot: n[7] ? 1 : 0,
   };

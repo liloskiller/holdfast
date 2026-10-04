@@ -6,7 +6,7 @@ import {
   COLORS, DRONE, GameMode, MaterialId, PFlag, PhaseId, SIM_DT, Btn, EntityKind, HitKind,
   activeWeapon, activeWeaponId, buildShotRays, clamp, eyeHeight, lerp, makeCmd, makeRayHit, makeStepOut, operatorDef,
   parseMap, quantizeCmd, raySphere, rayAabb, spreadDeg, stateFromArray, wrapAngle, World, weaponDef, MAX_PELLETS, PLAYER,
-  KillCause, type WeaponDef,
+  KillCause, LEAN, leanVec, type WeaponDef,
   type ClientMsg, type GameEvent, type InputCmd, type PhaseInfo, type RoomState, type SelfExtra,
   type ServerMsg, type Snapshot, createPlayerState, type PlayerState, makeExtra, type SoundKind,
 } from '@holdfast/shared';
@@ -48,7 +48,7 @@ interface PingMarker {
 }
 
 const FAR_SHOT = 160;
-const PROMPTS = ['', 'E  Open door', 'E  Close door', 'E  Vault', 'Hold E  Reinforce wall', 'Hold E  Barricade', 'F  Detonate charge'];
+const PROMPTS = ['', 'F  Open door', 'F  Close door', 'F  Vault', 'Hold F  Reinforce wall', 'Hold F  Barricade', 'G  Detonate charge'];
 const EYE_SMOOTH = 12;
 
 export class Game {
@@ -90,6 +90,8 @@ export class Game {
   private hitTmp = makeRayHit();
   private tmpV = new THREE.Vector3();
   private tmpV2 = new THREE.Vector3();
+  private leanTmp = { x: 0, y: 0, z: 0 };
+  private landDip = 0;
 
   // state tracking for UI/audio
   private snapCount = 0;
@@ -558,6 +560,12 @@ export class Game {
     }
     if (out.gadgetPressed) audio.ui('gadget', 0.5);
     if (out.droneToggled) audio.ui('ui', 0.5);
+    if (out.landSpeed > 2.5 && !s.dCtl) {
+      this.landDip = Math.min(0.12, out.landSpeed * 0.008);
+      this.effects.addShake(Math.min(0.5, out.landSpeed * 0.03));
+      audio.ui('step_concrete', Math.min(0.9, 0.3 + out.landSpeed * 0.05));
+      if (out.landSpeed > 7) this.host.haptic(60);
+    }
     if (out.droneHop && s.dCtl) {
       audio.ui('drone', 0.55);
       this.effects.shake = Math.max(this.effects.shake, 0.15);
@@ -573,9 +581,10 @@ export class Game {
     const s = this.pred.state;
     const aim = this.stepOut;
     buildShotRays(aim.aimYaw, aim.aimPitch, aim.spread, this.myId, shotIdx, def, this.rayBuf);
-    const ox = s.x;
-    const oy = s.y + eyeHeight(s);
-    const oz = s.z;
+    const lv = leanVec(s.yaw, s.lean, this.leanTmp);
+    const ox = s.x + lv.x;
+    const oy = s.y + eyeHeight(s) + lv.y;
+    const oz = s.z + lv.z;
     // tracer start near the muzzle: slightly right/below/forward of the eye
     const cam = this.renderer.camera;
     const m = this.viewmodel.muzzleLocal(this.tmpV);
@@ -700,6 +709,7 @@ export class Game {
     this.viewRcP += (s.alive ? s.rcP - this.viewRcP : -this.viewRcP) * chase;
     this.viewRcY += (s.alive ? s.rcY - this.viewRcY : -this.viewRcY) * chase;
     const calm = Math.exp(-dt * 9);
+    this.landDip *= Math.exp(-dt * 10);
     this.flinchP *= calm;
     this.flinchY *= calm;
 
@@ -791,6 +801,11 @@ export class Game {
       this.eyeH += (targetEye - this.eyeH) * Math.min(1, dt * EYE_SMOOTH);
       ey = lerp(p.y, s.y, a) + this.pred.offY + this.eyeH;
       ez = lerp(p.z, s.z, a) + this.pred.offZ;
+      // leaning: the eye moves out to the side, the view rolls a little
+      const leanA = lerp(p.lean, s.lean, a);
+      const lv = leanVec(this.yaw, leanA, this.leanTmp);
+      ex += lv.x; ey += lv.y; ez += lv.z;
+      ey -= this.landDip;
       const shake = this.effects.shake;
       cam.position.set(
         ex + (Math.random() - 0.5) * shake * 0.12,
@@ -799,7 +814,7 @@ export class Game {
       );
       viewYaw = this.yaw + this.viewRcY + this.flinchY;
       viewPitch = clamp(this.pitch + this.viewRcP + this.flinchP, -1.55, 1.55);
-      cam.rotation.set(viewPitch, viewYaw, 0);
+      cam.rotation.set(viewPitch, viewYaw, -leanA * LEAN.roll);
       // fov follows the simulated aiming blend
       const def = activeWeapon(s);
       const base = this.baseVFov();
@@ -820,6 +835,7 @@ export class Game {
       speed: Math.hypot(s.vx, s.vz), adsAmt: lerp(this.pred.prev.adsAmt, s.adsAmt, this.acc / SIM_DT), sprint: s.sprint,
       reloading: s.reloading, reloadProgress: prog, reloadTac: s.reloadTac, empty: ammoNow <= 0,
       lookDX: this.lastLookDX, lookDY: this.lastLookDY, onGround: s.onGround, crouch: s.crouch,
+      lean: lerp(this.pred.prev.lean, s.lean, this.acc / SIM_DT),
     }, this.viewmodelVisible);
     this.runSfxQueue(now);
     this.lastLookDX *= 0.8;

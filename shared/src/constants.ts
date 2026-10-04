@@ -42,6 +42,21 @@ export const PLAYER = {
 // The attacker drone is a small wheeled RC car, not a flyer: it drives on the floor, falls with gravity,
 // rolls over tiny lips and can hop (about 0.6 m) to get onto low furniture or up stair steps.
 // Its position (dx, dy, dz) is the centre of the chassis.
+/** Landing harder than this (m/s, about a 1.4 m drop) hurts. */
+export const FALL = {
+  safe: 7,
+  perMps: 11, // hp per m/s over the safe speed
+} as const;
+
+export const LEAN = {
+  offset: 0.34, // how far the head moves sideways at full lean (m)
+  drop: 0.05, // and how far it sinks
+  rate: 7, // lean per second (full lean in about 0.14 s)
+  roll: 0.26, // camera roll at full lean (rad)
+  speedMul: 0.7, // walking speed while fully leaned
+  headClear: 0.12, // half size of the head probe used against walls
+} as const;
+
 export const DRONE = {
   halfW: 0.2, // half footprint of the chassis
   halfH: 0.12, // half height of the chassis
