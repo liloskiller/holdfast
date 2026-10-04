@@ -1,10 +1,12 @@
 // Main menu: name, practice, create room, join room, settings.
 
 import { settings, saveSettings } from '../settings';
+import type { SoloOptions } from '@holdfast/shared';
 import { btn, el } from './dom';
 
 export interface MenuHooks {
   onPractice(): void;
+  onSolo(opts: SoloOptions): void;
   onCreate(): void;
   onJoin(code: string): void;
   onSettings(): void;
@@ -18,6 +20,7 @@ export class Menu {
   private err: HTMLElement;
   private busy = false;
   private buttons: HTMLButtonElement[] = [];
+  private solo: HTMLDivElement;
 
   constructor(parent: HTMLElement, hooks: MenuHooks) {
     const root = el('div', 'screen menu hidden', undefined, parent);
@@ -41,8 +44,11 @@ export class Menu {
       saveSettings();
     });
 
-    this.buttons.push(btn('PRACTICE  (solo, offline)', 'btn primary', () => this.guard(hooks.onPractice), card));
-    this.buttons.push(btn('CREATE ROOM', 'btn', () => this.guard(hooks.onCreate), card));
+    this.buttons.push(btn('SOLO MATCH vs BOTS  (offline)', 'btn primary', () => this.toggleSolo(), card));
+    this.solo = el('div', 'solo-panel hidden', undefined, card);
+    this.buildSolo(hooks);
+    this.buttons.push(btn('PRACTICE  (shooting range)', 'btn', () => this.guard(hooks.onPractice), card));
+    this.buttons.push(btn('CREATE ROOM  (friends)', 'btn', () => this.guard(hooks.onCreate), card));
 
     const joinRow = el('div', 'join-row', undefined, card);
     this.codeInput = el('input', 'input code', undefined, joinRow);
@@ -65,6 +71,32 @@ export class Menu {
 
     this.err = el('div', 'menu-error', '', card);
     el('div', 'menu-foot', 'Original game. Local friends only.', card);
+  }
+
+  private toggleSolo(): void {
+    this.solo.classList.toggle('hidden');
+  }
+
+  /** Options of a solo match: your side, team size and the bot difficulty. */
+  private buildSolo(hooks: MenuHooks): void {
+    const row = (label: string, names: string[], get: () => number, set: (v: number) => void): void => {
+      const r = el('div', 'solo-row', undefined, this.solo);
+      el('span', 'solo-label', label, r);
+      const group = el('div', 'solo-group', undefined, r);
+      const bs: HTMLButtonElement[] = [];
+      const paint = (): void => bs.forEach((b, i) => b.classList.toggle('on', i === get()));
+      names.forEach((n, i) => {
+        bs.push(btn(n, 'btn small', () => { set(i); saveSettings(); paint(); }, group));
+      });
+      paint();
+    };
+    row('START AS', ['ATTACKER', 'DEFENDER'], () => settings.soloSide, (v) => { settings.soloSide = v; });
+    row('TEAM SIZE', ['2', '3', '4', '5'], () => settings.soloSize - 2, (v) => { settings.soloSize = v + 2; });
+    row('BOTS', ['EASY', 'NORMAL', 'HARD'], () => settings.soloDiff, (v) => { settings.soloDiff = v; });
+    el('div', 'solo-note', 'You and your bot teammates against bots. First to 3 rounds. Works with no internet.', this.solo);
+    this.buttons.push(btn('START MATCH', 'btn primary', () => this.guard(() => hooks.onSolo({
+      size: settings.soloSize, difficulty: settings.soloDiff, side: settings.soloSide === 1 ? 1 : 0,
+    })), this.solo));
   }
 
   private join(hooks: MenuHooks): void {

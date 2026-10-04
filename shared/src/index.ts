@@ -7,6 +7,7 @@ export * from './world';
 export * from './movement';
 export * from './weapons';
 export * from './lean';
+export * from './nav';
 export * from './operators';
 export * from './protocol';
 export * from './mapCheck';

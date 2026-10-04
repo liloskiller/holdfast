@@ -5,3 +5,4 @@ export { Room } from './Room';
 export type { RoomOptions } from './Room';
 export { Player } from './Player';
 export type { Conn, ConnState } from './transport';
+export { BOT_SKILLS } from './bots/BotMind';

@@ -198,6 +198,16 @@ export function bodyHeight(s: { crouch: boolean }): number {
 // Rooms and lobby
 // ---------------------------------------------------------------------------
 
+/** A solo match against computer players. */
+export interface SoloOptions {
+  /** Players per team including you (2 to 5). */
+  size: number;
+  /** 0 easy, 1 normal, 2 hard. */
+  difficulty: number;
+  /** 0: you start as an attacker, 1: you start as a defender. */
+  side: 0 | 1;
+}
+
 export interface RoomPlayerInfo {
   id: number;
   name: string;
@@ -213,6 +223,8 @@ export interface RoomPlayerInfo {
   objective: number; // seconds spent capturing
   alive: boolean;
   ping: number;
+  /** A computer controlled player. */
+  bot: boolean;
 }
 
 export interface RoomState {
@@ -360,7 +372,7 @@ export interface Snapshot {
 // ---------------------------------------------------------------------------
 
 export type ClientMsg =
-  | { t: 'CREATE_ROOM'; name: string; mode?: GameMode; sandbox?: boolean }
+  | { t: 'CREATE_ROOM'; name: string; mode?: GameMode; sandbox?: boolean; solo?: SoloOptions }
   | { t: 'JOIN_ROOM'; code: string; name: string; token?: string }
   | { t: 'SET_TEAM'; team: 0 | 1 }
   | { t: 'SET_READY'; ready: boolean }

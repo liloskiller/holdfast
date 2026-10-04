@@ -228,6 +228,15 @@ export function decodeClient(raw: string): ClientMsg | null {
       const mode = num(r['mode'], 0, 2);
       if (mode !== null) m.mode = Math.round(mode) as 0 | 1 | 2;
       if (r['sandbox'] === true) m.sandbox = true;
+      const solo = r['solo'];
+      if (typeof solo === 'object' && solo !== null && !m.sandbox) {
+        const so = solo as Record<string, unknown>;
+        m.solo = {
+          size: Math.round(num(so['size'], 2, 5) ?? 3),
+          difficulty: Math.round(num(so['difficulty'], 0, 2) ?? 1),
+          side: so['side'] === 1 ? 1 : 0,
+        };
+      }
       return m;
     }
     case 'JOIN_ROOM': {

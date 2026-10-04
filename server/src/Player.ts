@@ -4,6 +4,7 @@ import {
   NET, OperatorId, createPlayerState, type Aabb, type EntityKind, type InputCmd, type PlayerState,
 } from '@holdfast/shared';
 import type { Conn } from './transport';
+import type { BotMind } from './bots/BotMind';
 
 const HIST = 64; // ticks of history, > 500 ms at 60 Hz
 
@@ -23,6 +24,9 @@ export class Player {
   ready = false;
   connected = true;
   isDummy = false;
+  /** Computer controlled. Bots are full players for the round logic but have no connection. */
+  isBot = false;
+  bot: BotMind | null = null;
   token = '';
   conn: Conn | null = null;
   disconnectedAt = 0;

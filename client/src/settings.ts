@@ -17,6 +17,10 @@ export interface Settings {
   haptics: boolean;
   showFps: boolean;
   adsToggle: boolean;
+  /** Solo match against bots: players per team, difficulty 0..2, 0 attack first / 1 defend first. */
+  soloSize: number;
+  soloDiff: number;
+  soloSide: number;
 }
 
 export function isTouchDevice(): boolean {
@@ -44,6 +48,9 @@ export function defaultSettings(): Settings {
     haptics: true,
     showFps: false,
     adsToggle: touch,
+    soloSize: 3,
+    soloDiff: 1,
+    soloSide: 0,
   };
 }
 

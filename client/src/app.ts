@@ -1,7 +1,7 @@
 // Application shell: screens, session (connect / reconnect), phase driven UI, pointer lock, wake lock.
 
 import {
-  GameMode, PhaseId, type ClientMsg, type PhaseInfo, type RoomSettings, type RoomState, type ServerMsg,
+  GameMode, PhaseId, type ClientMsg, type PhaseInfo, type RoomSettings, type SoloOptions, type RoomState, type ServerMsg,
 } from '@holdfast/shared';
 import { GameAudio } from './audio/Audio';
 import { Game, type GameHost } from './game/Game';
@@ -92,6 +92,7 @@ export class App {
 
     this.menu = new Menu(this.uiRoot, {
       onPractice: () => void this.startPractice(),
+      onSolo: (opts) => this.startSolo(opts),
       onCreate: () => void this.createRoom(),
       onJoin: (code) => void this.joinRoom(code),
       onSettings: () => this.openSettings('menu'),
@@ -261,6 +262,17 @@ export class App {
     const conn = new LoopbackConnection(safehouseText);
     this.attachTransport(conn);
     conn.send({ t: 'CREATE_ROOM', name: this.name(), sandbox: true });
+  }
+
+  /** A full match against bots, running in the page (no server, works offline). */
+  private startSolo(opts: SoloOptions): void {
+    this.audio.unlock();
+    this.tryFullscreen();
+    this.practice = false;
+    this.intentional = false;
+    const conn = new LoopbackConnection(safehouseText);
+    this.attachTransport(conn);
+    conn.send({ t: 'CREATE_ROOM', name: this.name(), solo: opts });
   }
 
   private async createRoom(): Promise<void> {

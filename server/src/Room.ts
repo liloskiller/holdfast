@@ -14,6 +14,7 @@ import { startMatch, updateRound, onPlayerLeft, applyPick, sandboxStart, spawnRo
 import { updateGadgets } from './systems/gadgetSystem';
 import { buildSnapshot } from './systems/visibilitySystem';
 import { debugCommand } from './systems/destructionSystem';
+import { updateBots } from './bots/botSystem';
 
 export interface ShotRec {
   src: number;
@@ -26,6 +27,8 @@ export interface ShotRec {
 }
 
 export interface SoundRec {
+  /** Running number, so bots can tell new sounds from ones they already heard. */
+  serial: number;
   s: SoundKind;
   x: number;
   y: number;
@@ -92,6 +95,7 @@ export class Room {
   emptySince = 0;
   closed = false;
   rngState: number;
+  soundSerial = 0;
   /** For tests: skip visibility filtering. */
   debugNoVisibility = false;
 
@@ -145,6 +149,11 @@ export class Room {
     return this.humans().filter((p) => p.connected);
   }
 
+  /** People (not bots) who are in the room right now. */
+  livePeople(): Player[] {
+    return this.humans().filter((p) => p.connected && !p.isBot);
+  }
+
   alivePlayers(team?: number): Player[] {
     const out: Player[] = [];
     for (const p of this.players.values()) if (p.state.alive && (team === undefined || p.team === team)) out.push(p);
@@ -166,7 +175,7 @@ export class Room {
   }
 
   sound(s: SoundKind, x: number, y: number, z: number, radius: number, src = 0, team = -1): void {
-    this.sounds.push({ s, x, y, z, radius, src, team });
+    this.sounds.push({ serial: ++this.soundSerial, s, x, y, z, radius, src, team });
   }
 
   markRoomDirty(): void {
@@ -185,7 +194,7 @@ export class Room {
         .map((p) => ({
           id: p.id, name: p.name, team: p.team, ready: p.ready, op: p.op, primary: p.primary, secondary: p.secondary,
           host: p.id === this.hostId, connected: p.connected, kills: p.kills, deaths: p.deaths,
-          objective: Math.round(p.objTime), alive: p.state.alive, ping: p.ping,
+          objective: Math.round(p.objTime), alive: p.state.alive, ping: p.ping, bot: p.isBot,
         })),
     };
   }
@@ -251,6 +260,21 @@ export class Room {
     return p;
   }
 
+  /** Add a computer player (see bots/botSystem.ts). It has no connection and counts as a normal player in a round. */
+  addBotPlayer(name: string, team: 0 | 1): Player | null {
+    if (this.humans().length >= NET.maxPlayers) return null;
+    const p = new Player(this.nextPlayerId++, name);
+    p.isBot = true;
+    p.connected = true;
+    p.team = team;
+    p.ready = true;
+    p.state.alive = false;
+    p.state.hp = 0;
+    this.players.set(p.id, p);
+    this.markRoomDirty();
+    return p;
+  }
+
   attachConn(p: Player, conn: Conn): void {
     p.conn = conn;
     p.connected = true;
@@ -285,7 +309,7 @@ export class Room {
   private migrateHost(): void {
     const host = this.players.get(this.hostId);
     if (host && host.connected) return;
-    const next = this.connectedHumans()[0];
+    const next = this.livePeople()[0];
     this.hostId = next ? next.id : 0;
   }
 
@@ -412,6 +436,7 @@ export class Room {
   private step(): void {
     this.tick++;
     this.time += TICK_MS;
+    updateBots(this);
     processInputs(this);
     updateGadgets(this);
     updateRound(this);
@@ -425,7 +450,7 @@ export class Room {
       this.broadcast({ t: 'ROOM', room: this.roomState() });
     }
     for (const p of [...this.players.values()]) {
-      if (p.isDummy || p.connected) continue;
+      if (p.isDummy || p.isBot || p.connected) continue;
       const away = this.time - p.disconnectedAt;
       // a blip shorter than the grace period keeps the player alive, longer means out for the round
       if (p.state.alive && away > DISCONNECT_GRACE_MS) {
@@ -439,7 +464,7 @@ export class Room {
       // the slot is released after the reconnect window
       if (away > NET.reconnectMs) this.removePlayer(p);
     }
-    if (this.connectedHumans().length === 0 && this.emptySince === 0) this.emptySince = this.time;
+    if (this.livePeople().length === 0 && this.emptySince === 0) this.emptySince = this.time;
   }
 
   private sendSnapshots(): void {

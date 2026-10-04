@@ -320,7 +320,7 @@ export function sandboxStart(room: Room): void {
 
 export function onPlayerLeft(room: Room, _p: Player): void {
   if (room.sandbox) return;
-  if (room.connectedHumans().length === 0) return;
+  if (room.livePeople().length === 0) return;
   if (room.phase === PhaseId.ACTION || room.phase === PhaseId.PREP) {
     checkWin(room, false);
   }

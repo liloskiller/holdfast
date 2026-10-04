@@ -354,3 +354,12 @@ select.input { appearance: none; }
 .stat-label { width: 68px; color: #9aa5b1; }
 .stat-bar { flex: 1; height: 5px; background: rgba(255, 255, 255, 0.12); border-radius: 3px; overflow: hidden; display: block; }
 .stat-bar .fill { display: block; height: 100%; background: #ffb347; }
+
+/* solo match options in the main menu */
+.solo-panel { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px; background: rgba(255, 255, 255, 0.04); }
+.solo-row { display: flex; align-items: center; gap: 8px; }
+.solo-label { width: 84px; font-size: 10px; letter-spacing: 0.14em; color: #9aa5b1; flex: none; }
+.solo-group { display: flex; gap: 6px; flex: 1; }
+.solo-group .btn { flex: 1; padding: 6px 4px; min-height: 34px; }
+.solo-group .btn.on { background: var(--atk); border-color: var(--atk); color: #1a0d00; }
+.solo-note { font-size: 11px; color: #9aa5b1; line-height: 1.35; }

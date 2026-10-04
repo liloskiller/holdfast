@@ -6,6 +6,7 @@ import {
 import { Room, type RoomOptions } from './Room';
 import type { Player } from './Player';
 import type { Conn, ConnState } from './transport';
+import { setupSolo } from './bots/solo';
 
 export interface LobbyOptions {
   clock?: () => number;
@@ -99,6 +100,11 @@ export class Lobby {
     this.rooms.set(code, room);
     if (!this.manual) room.startLoop();
     this.attach(cs, room, msg.name);
+    const human = room.players.get(cs.playerId);
+    if (msg.solo && !msg.sandbox && human) {
+      const err = setupSolo(room, human, msg.solo);
+      if (err) this.sendRaw(cs, { t: 'ERR', msg: err });
+    }
   }
 
   private join(cs: ConnState, msg: Extract<ClientMsg, { t: 'JOIN_ROOM' }>): void {

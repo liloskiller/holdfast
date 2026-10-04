@@ -22,6 +22,12 @@ Targets: desktop Chrome, Android Chrome, iPhone Safari in the browser, iPhone Sa
 - [ ] Press N on a marked panel (red/brown R wall): it turns to metal and ignores bullets; B blasts it anyway
 - [ ] Shoot a floor hatch from below and from above, drop through it
 
+### Solo match vs bots
+- [ ] Menu: SOLO MATCH, choose side, team size and difficulty, START MATCH. Bots pick operators, prep starts, bots reinforce walls and barricade doors (defenders)
+- [ ] As attacker: bots on your team push toward the objective, kick barricades, go upstairs; enemy bots react to noise, do not see you through walls
+- [ ] Easy bots are slow to react and miss a lot, hard bots are sharp but beatable; nothing hangs for a whole round
+- [ ] The match finishes (first to 3), you land back in the lobby and START MATCH plays again
+
 ### Combat
 - [ ] Recoil: hold fire with the Carbine, the view climbs, pulling the mouse down keeps shots on target, releasing settles it. Crosshair widens during a spray and closes when you stop.
 - [ ] ADS speed: SMG snaps up, Marksman and Anvil take noticeably longer. Reload cancels aiming.

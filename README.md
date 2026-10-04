@@ -20,6 +20,8 @@ npm run dev        # game server + Vite dev server (HTTPS)
 
 Open `https://localhost:5173`. The first time, the browser warns about the self signed certificate: Advanced, Proceed.
 
+Click **SOLO MATCH vs BOTS** to play a real round based match alone (you and bot teammates against bots, no server and no internet needed), or **PRACTICE** for a shooting range with targets and sandbox tools.
+
 Click **PRACTICE** to play alone right away. Practice runs a complete authoritative room inside your browser (no server needed) with shootable targets and sandbox tools, so it is the fastest way to try destruction, gadgets and movement.
 
 ## Playing with friends on your Wi-Fi (phones and laptops)
@@ -39,7 +41,7 @@ In the game: one person taps **CREATE ROOM**, everyone else enters the 4 letter 
 
 | What you want | How | Needs |
 |---|---|---|
-| Solo Practice, nothing installed, no internet | `npm run build:offline`, then open `dist-offline/holdfast.html` (about 760 KB, one file, double click it). Copy it to a USB stick or another computer and it still works. | Any modern browser. No server. Solo Practice only, multiplayer shows a message. |
+| Solo match vs bots or Practice, nothing installed, no internet | `npm run build:offline`, then open `dist-offline/holdfast.html` (about 760 KB, one file, double click it). Copy it to a USB stick or another computer and it still works. | Any modern browser. No server. Solo match and Practice only, multiplayer shows a message. |
 | Solo Practice, reopens like an app | Visit the game once while online (or on `localhost`), then it is cached by a service worker and opens with no network at all. On a phone use Add to Home Screen. | One visit over `localhost` or a real HTTPS certificate. |
 | Multiplayer with friends and no internet | `npm run lan` on one laptop, everyone joins that laptop's address over the same Wi-Fi or a phone hotspot. Nothing is fetched from the internet at runtime (no CDN, no fonts, no analytics). | Run `npm install` once while online. |
 
@@ -70,6 +72,12 @@ Notes:
 Tap F near a **broken window** to vault through it. **Hold F** facing a marked wall panel to reinforce it (defenders, prep only) or facing a door or window to barricade it. Drone: a small RC car that drives on the floor (WASD, mouse to look), rolls over tiny lips and **hops** (Space) about knee high to get over low furniture and up stairs. It cannot fly, cannot pass one metre furniture, and a hard fall damages it. FIRE tags the enemy in your crosshair so your team sees them through walls for 8 seconds.
 
 **Leaning:** hold Q or E to put your head and shoulders out around a corner while your feet stay put. The server treats the leaned head as really being there (line of sight, shots and hit boxes), walls stop the lean, you walk slower while leaning and cannot lean while sprinting or in the air. Falling more than about 1.4 m hurts, a long fall kills.
+
+## Bots (solo matches)
+
+The menu's **SOLO MATCH vs BOTS** starts a full match in your browser: pick your side (attack or defend), team size (2 to 5 per team, you included) and bot difficulty (easy, normal, hard). It uses the same rules, map and round flow as an online match (operator pick, prep, action, first to 3 rounds, sides swap every 2).
+
+Bots are ordinary players whose inputs are generated on the server side of the game (in your page for solo play), so they move, shoot, recoil, reload and take damage by exactly the same code as you. They have no special senses: they see what is in their field of view with a clear line, and hear footsteps, gunfire and breaches within range. Attackers path to the objective (through doors and up the stairs), kick down barricades and fight what they meet; defenders reinforce walls and barricade doors in prep, then hold positions near the objective, turn to noises and contest the objective when it is being taken. They do not use gadgets or drones yet.
 
 ## How a match works
 
