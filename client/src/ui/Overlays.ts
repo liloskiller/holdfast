@@ -9,7 +9,7 @@ export interface PauseHooks {
   onHelp(): void;
   onLeave(): void;
   onDebug(cmd: string): void;
-  onPick(op: number, primary: number): void;
+  onPick(op: number, primary: number, secondary: number): void;
 }
 
 export class PauseMenu {
@@ -40,13 +40,28 @@ export class PauseMenu {
         o.value = String(w);
       }
     };
+    const sSel = el('select', 'input', undefined, opRow);
+    const fillSecondary = (): void => {
+      clear(sSel);
+      const def = OPERATORS[Number(opSel.value)];
+      for (const w of def ? def.secondaries : []) {
+        const o = el('option', '', weaponDef(w).name, sSel);
+        o.value = String(w);
+      }
+    };
     fillWeapons();
-    const send = (): void => hooks.onPick(Number(opSel.value), Number(wSel.value));
+    fillSecondary();
+    const send = (): void => {
+      const od = OPERATORS[Number(opSel.value)];
+      hooks.onPick(Number(opSel.value), Number(wSel.value), od ? Number(sSel.value || od.secondaries[0]) : 4);
+    };
     opSel.addEventListener('change', () => {
       fillWeapons();
+      fillSecondary();
       send();
     });
     wSel.addEventListener('change', send);
+    sSel.addEventListener('change', send);
     const row = el('div', 'menu-row', undefined, this.practice);
     btn('Reset world', 'btn small', () => hooks.onDebug('reset'), row);
     btn('Refill', 'btn small', () => hooks.onDebug('refill'), row);

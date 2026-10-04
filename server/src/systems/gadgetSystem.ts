@@ -1,7 +1,7 @@
 // Operator gadgets, drones and placed entities (shields, traps, jammers, cameras, breach charges).
 
 import {
-  DRONE, EntityKind, GADGET, GadgetKind, HitKind, OperatorId, PhaseId, SIM_DT, eyeHeight, makeRayHit,
+  DRONE, EntityKind, GADGET, KillCause, GadgetKind, HitKind, OperatorId, PhaseId, SIM_DT, eyeHeight, makeRayHit,
   operatorDef, rayAabb, type Aabb, type RayHit,
 } from '@holdfast/shared';
 import type { Entity } from '../Player';
@@ -10,7 +10,7 @@ import type { Room } from '../Room';
 import { applyDamage } from './combatSystem';
 
 const hit: RayHit = makeRayHit();
-export const BREACH_WEAPON = 5;
+export const BREACH_WEAPON = KillCause.BREACH;
 
 function look(p: Player): [number, number, number] {
   const s = p.state;
@@ -485,7 +485,7 @@ export function updateGadgets(room: Room): void {
         const os = o.state;
         if (Math.abs(os.x - e.x) < GADGET.trapRadius && Math.abs(os.z - e.z) < GADGET.trapRadius && Math.abs(os.y - e.y) < 0.5) {
           os.slow = GADGET.trapSlowTime;
-          applyDamage(room, o, room.players.get(e.owner) ?? null, GADGET.trapDamage, false, 6);
+          applyDamage(room, o, room.players.get(e.owner) ?? null, GADGET.trapDamage, false, KillCause.TRAP);
           room.sound('trap', e.x, e.y, e.z, 30, e.owner, e.team);
           removeEntity(room, e);
           break;

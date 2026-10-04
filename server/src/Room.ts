@@ -183,7 +183,7 @@ export class Room {
       players: [...this.players.values()]
         .filter((p) => !p.isDummy)
         .map((p) => ({
-          id: p.id, name: p.name, team: p.team, ready: p.ready, op: p.op, primary: p.primary,
+          id: p.id, name: p.name, team: p.team, ready: p.ready, op: p.op, primary: p.primary, secondary: p.secondary,
           host: p.id === this.hostId, connected: p.connected, kills: p.kills, deaths: p.deaths,
           objective: Math.round(p.objTime), alive: p.state.alive, ping: p.ping,
         })),
@@ -316,7 +316,7 @@ export class Room {
         break;
       case 'PICK_OPERATOR':
         if (this.phase === PhaseId.OPERATOR_SELECT || this.sandbox) {
-          const err = applyPick(this, p, msg.op, msg.primary, this.sandbox);
+          const err = applyPick(this, p, msg.op, msg.primary, this.sandbox, msg.secondary);
           if (err) this.send(p, { t: 'ERR', msg: err });
           else if (this.sandbox) spawnRoundPlayer(this, p, true);
         }

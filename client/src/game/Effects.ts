@@ -130,6 +130,11 @@ export class Effects {
     if (!flesh) this.spawn(x, y, z, nx * 0.2, 0.3, nz * 0.2, 0.3, 0.06, 0xa8a49c, -0.3);
   }
 
+  /** A spent casing: a tiny brass (or red shotgun) cube that tumbles to the floor. */
+  shell(x: number, y: number, z: number, vx: number, vy: number, vz: number, color: number): void {
+    this.spawn(x, y, z, vx, vy, vz, 1.2, 0.018, color, 14);
+  }
+
   tracer(ox: number, oy: number, oz: number, ex: number, ey: number, ez: number): void {
     const t = this.tracers[this.nextT] as Tracer;
     this.nextT = (this.nextT + 1) % MAX_TRACERS;

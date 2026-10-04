@@ -1,10 +1,10 @@
 // Operator pick screen shown during the OPERATOR_SELECT phase.
 
-import { OPERATORS, weaponDef, type OperatorDef, type RoomState } from '@holdfast/shared';
+import { OPERATORS, weaponDef, type OperatorDef, type RoomState, type WeaponDef } from '@holdfast/shared';
 import { btn, clear, el } from './dom';
 
 export interface OperatorHooks {
-  onPick(op: number, primary: number): void;
+  onPick(op: number, primary: number, secondary: number): void;
 }
 
 export class OperatorSelect {
@@ -15,6 +15,7 @@ export class OperatorSelect {
   private detail: HTMLElement;
   private selected = -1;
   private primary = -1;
+  private secondary = -1;
   private side: 'attack' | 'defend' = 'attack';
   private lastKey = '';
 
@@ -42,6 +43,7 @@ export class OperatorSelect {
     this.side = side;
     this.selected = -1;
     this.primary = -1;
+    this.secondary = -1;
     this.lastKey = '';
     this.title.textContent = side === 'attack' ? 'SELECT ATTACKER' : 'SELECT DEFENDER';
     this.title.className = 'ops-title ' + side;
@@ -56,7 +58,7 @@ export class OperatorSelect {
       const def = OPERATORS[m.op];
       if (def && def.unique && def.side === this.side) takenBy.set(m.op, m.name);
     }
-    const key = [...takenBy.entries()].join('|') + '#' + this.selected + '#' + this.primary;
+    const key = [...takenBy.entries()].join('|') + '#' + this.selected + '#' + this.primary + '#' + this.secondary;
     if (key === this.lastKey) return;
     this.lastKey = key;
 
@@ -72,8 +74,9 @@ export class OperatorSelect {
       card.addEventListener('click', () => {
         this.selected = op.id;
         this.primary = op.primaries[0];
+        this.secondary = op.secondaries[0];
         this.lastKey = '';
-        this.hooks.onPick(op.id, this.primary);
+        this.hooks.onPick(op.id, this.primary, this.secondary);
         this.update(room, myId);
       });
     }
@@ -89,16 +92,51 @@ export class OperatorSelect {
     }
     el('div', 'ops-d-name', def.name.toUpperCase() + '  -  ' + def.gadgetName, this.detail);
     el('div', 'ops-d-text', def.gadgetDesc, this.detail);
-    const row = el('div', 'ops-weapons', undefined, this.detail);
-    for (const w of def.primaries) {
-      const wd = weaponDef(w);
-      btn(`${wd.name}  (${wd.role})`, 'btn small' + (w === this.primary ? ' primary' : ''), () => {
-        this.primary = w;
-        this.lastKey = '';
-        this.hooks.onPick(def.id, w);
-        this.update(room, myId);
-      }, row);
+    const pick = (): void => {
+      this.lastKey = '';
+      this.hooks.onPick(def.id, this.primary, this.secondary);
+      this.update(room, myId);
+    };
+    const weaponRow = (label: string, list: readonly number[], current: number, set: (w: number) => void): void => {
+      el('div', 'ops-d-label', label, this.detail);
+      const row = el('div', 'ops-weapons', undefined, this.detail);
+      for (const w of list) {
+        const wd = weaponDef(w);
+        btn(`${wd.name}  (${wd.role})`, 'btn small' + (w === current ? ' primary' : ''), () => {
+          set(w);
+          pick();
+        }, row);
+      }
+    };
+    weaponRow('PRIMARY', def.primaries, this.primary, (w) => { this.primary = w; });
+    weaponRow('SIDEARM', def.secondaries, this.secondary, (w) => { this.secondary = w; });
+    const bars = el('div', 'ops-stats', undefined, this.detail);
+    this.statBlock(bars, weaponDef(this.primary));
+    this.statBlock(bars, weaponDef(this.secondary));
+    el('div', 'ops-d-text dim', 'Your choice is locked in as soon as you tap.', this.detail);
+  }
+
+  /** Small stat card: damage, fire rate, range, control and mobility as bars. */
+  private statBlock(parent: HTMLElement, w: WeaponDef): void {
+    const card = el('div', 'stat-card', undefined, parent);
+    const tags = [w.mode === 'auto' ? 'AUTO' : w.mode === 'burst' ? `BURST x${w.burst}` : w.kind === 'shotgun' ? 'PUMP' : 'SEMI'];
+    if (w.suppressed) tags.push('SUPPRESSED');
+    el('div', 'stat-name', `${w.name}  -  ${tags.join('  ')}`, card);
+    const per = w.damage * (w.pellets > 1 ? w.pellets * 0.6 : 1);
+    const rate = w.mode === 'burst' ? w.rpm * w.burst : w.rpm;
+    const bars: [string, number][] = [
+      ['DAMAGE', per / 62],
+      ['FIRE RATE', rate / 900],
+      ['RANGE', w.falloffStart / 50],
+      ['CONTROL', 1 - w.kickPitch / 0.06],
+      ['MOBILITY', (w.moveMul - 0.85) / 0.2],
+    ];
+    for (const [label, v] of bars) {
+      const row = el('div', 'stat-row', undefined, card);
+      el('span', 'stat-label', label, row);
+      const bar = el('span', 'stat-bar', undefined, row);
+      const fill = el('span', 'fill', undefined, bar);
+      fill.style.width = Math.round(Math.max(0.06, Math.min(1, v)) * 100) + '%';
     }
-    el('div', 'ops-d-text dim', 'Sidearm: ' + weaponDef(4).name + '.  Locked in as soon as you tap.', this.detail);
   }
 }

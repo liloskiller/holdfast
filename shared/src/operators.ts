@@ -33,6 +33,8 @@ export interface OperatorDef {
   side: 'attack' | 'defend';
   /** Two primary weapon choices. */
   primaries: [WeaponId, WeaponId];
+  /** Two sidearm choices. */
+  secondaries: [WeaponId, WeaponId];
   gadget: GadgetKind;
   gadgetName: string;
   gadgetUses: number;
@@ -54,6 +56,7 @@ export const OPERATORS: readonly OperatorDef[] = [
   {
     id: OperatorId.RAM, name: 'Ram', side: 'attack',
     primaries: [WeaponId.CARBINE, WeaponId.HAMMER],
+    secondaries: [WeaponId.SIDEARM, WeaponId.MAGNUM],
     gadget: GadgetKind.BREACH, gadgetName: 'Hard breach charge', gadgetUses: 2,
     gadgetDesc: 'Stick to a wall or hatch, press again to detonate. Destroys reinforced walls.',
     passive: 'Heavy boots: kicks do 50% more damage to barricades.',
@@ -62,6 +65,7 @@ export const OPERATORS: readonly OperatorDef[] = [
   {
     id: OperatorId.PING, name: 'Ping', side: 'attack',
     primaries: [WeaponId.RATTLER, WeaponId.MARKSMAN],
+    secondaries: [WeaponId.SIDEARM, WeaponId.MAGNUM],
     gadget: GadgetKind.SENSOR, gadgetName: 'Pulse sensor', gadgetUses: 3,
     gadgetDesc: 'Shows enemy heartbeats within 12 m through walls for 6 s. Blocked by jammers.',
     passive: 'Light footed: moves 4% faster.',
@@ -69,7 +73,8 @@ export const OPERATORS: readonly OperatorDef[] = [
   },
   {
     id: OperatorId.MEND, name: 'Mend', side: 'attack',
-    primaries: [WeaponId.CARBINE, WeaponId.RATTLER],
+    primaries: [WeaponId.TALON, WeaponId.RATTLER],
+    secondaries: [WeaponId.SIDEARM, WeaponId.MAGNUM],
     gadget: GadgetKind.DART, gadgetName: 'Heal darts', gadgetUses: 4,
     gadgetDesc: 'Shoot a teammate (or yourself) to heal 40 HP over 4 s. Cannot revive.',
     passive: 'Steady hands: nothing extra, but heals are 25% stronger.',
@@ -77,7 +82,8 @@ export const OPERATORS: readonly OperatorDef[] = [
   },
   {
     id: OperatorId.AEGIS, name: 'Aegis', side: 'attack',
-    primaries: [WeaponId.RATTLER, WeaponId.HAMMER],
+    primaries: [WeaponId.ANVIL, WeaponId.RATTLER],
+    secondaries: [WeaponId.SIDEARM, WeaponId.MAGNUM],
     gadget: GadgetKind.SHIELD, gadgetName: 'Deployable shield', gadgetUses: 2,
     gadgetDesc: 'Place a 1.2 m wide shield with 400 HP. Blocks bullets, can be vaulted.',
     passive: 'Plated vest: starts with 110 HP.',
@@ -85,7 +91,8 @@ export const OPERATORS: readonly OperatorDef[] = [
   },
   {
     id: OperatorId.WARDEN, name: 'Warden', side: 'defend',
-    primaries: [WeaponId.HAMMER, WeaponId.RATTLER],
+    primaries: [WeaponId.HAMMER, WeaponId.TALON],
+    secondaries: [WeaponId.SIDEARM, WeaponId.MAGNUM],
     gadget: GadgetKind.REINFORCE, gadgetName: 'Extra reinforcement', gadgetUses: 0,
     gadgetDesc: 'Carries 3 reinforcement charges instead of 2, and places them in 1.5 s.',
     passive: 'Quick hands: barricades go up faster.',
@@ -93,7 +100,8 @@ export const OPERATORS: readonly OperatorDef[] = [
   },
   {
     id: OperatorId.SNARE, name: 'Snare', side: 'defend',
-    primaries: [WeaponId.RATTLER, WeaponId.HAMMER],
+    primaries: [WeaponId.WHISPER, WeaponId.HAMMER],
+    secondaries: [WeaponId.SIDEARM, WeaponId.MAGNUM],
     gadget: GadgetKind.TRAP, gadgetName: 'Spike traps', gadgetUses: 3,
     gadgetDesc: 'Floor trap, only your team sees it. Slows an attacker 70% for 3 s and deals 25 damage.',
     passive: 'Cat feet: footsteps are quieter.',
@@ -101,7 +109,8 @@ export const OPERATORS: readonly OperatorDef[] = [
   },
   {
     id: OperatorId.JAM, name: 'Jam', side: 'defend',
-    primaries: [WeaponId.CARBINE, WeaponId.RATTLER],
+    primaries: [WeaponId.CARBINE, WeaponId.ANVIL],
+    secondaries: [WeaponId.SIDEARM, WeaponId.MAGNUM],
     gadget: GadgetKind.JAMMER, gadgetName: 'Signal jammers', gadgetUses: 2,
     gadgetDesc: 'Disables sensors, heal darts and drones within 8 m. 60 HP each.',
     passive: 'Static: nothing extra.',
@@ -110,6 +119,7 @@ export const OPERATORS: readonly OperatorDef[] = [
   {
     id: OperatorId.EYE, name: 'Eye', side: 'defend',
     primaries: [WeaponId.MARKSMAN, WeaponId.CARBINE],
+    secondaries: [WeaponId.SIDEARM, WeaponId.MAGNUM],
     gadget: GadgetKind.CAMERA, gadgetName: 'Security cameras', gadgetUses: 2,
     gadgetDesc: 'Place cameras on walls or ceilings. Cycle through them with the camera button. They tag attackers in view.',
     passive: 'Watchful: nothing extra.',
@@ -118,6 +128,7 @@ export const OPERATORS: readonly OperatorDef[] = [
   {
     id: OperatorId.RECRUIT_A, name: 'Recruit', side: 'attack',
     primaries: [WeaponId.CARBINE, WeaponId.RATTLER],
+    secondaries: [WeaponId.SIDEARM, WeaponId.MAGNUM],
     gadget: GadgetKind.NONE, gadgetName: 'None', gadgetUses: 0,
     gadgetDesc: 'No gadget. Just a rifle and a drone.',
     passive: 'None.',
@@ -126,6 +137,7 @@ export const OPERATORS: readonly OperatorDef[] = [
   {
     id: OperatorId.RECRUIT_D, name: 'Recruit', side: 'defend',
     primaries: [WeaponId.CARBINE, WeaponId.HAMMER],
+    secondaries: [WeaponId.SIDEARM, WeaponId.MAGNUM],
     gadget: GadgetKind.NONE, gadgetName: 'None', gadgetUses: 0,
     gadgetDesc: 'No gadget. Just reinforcements and a rifle.',
     passive: 'None.',

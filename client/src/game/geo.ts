@@ -59,6 +59,36 @@ export function basicMat(color = 0xffffff, opts: { transparent?: boolean; opacit
   return m;
 }
 
+const cylCache = new Map<string, THREE.CylinderGeometry>();
+
+/** A cylinder along the Z axis with baked face shading (like shadedBox). */
+export function shadedCylinder(radiusTop: number, radiusBottom: number, length: number, segments = 10): THREE.CylinderGeometry {
+  const key = `${radiusTop}|${radiusBottom}|${length}|${segments}`;
+  const hit = cylCache.get(key);
+  if (hit) return hit;
+  const g = new THREE.CylinderGeometry(radiusTop, radiusBottom, length, segments, 1);
+  g.rotateX(Math.PI / 2);
+  const n = g.getAttribute('normal');
+  const colors = new Float32Array(n.count * 3);
+  for (let i = 0; i < n.count; i++) {
+    const sh = faceShade(n.getX(i), n.getY(i), n.getZ(i));
+    colors[i * 3] = sh;
+    colors[i * 3 + 1] = sh;
+    colors[i * 3 + 2] = sh;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  g.userData['shared'] = true;
+  cylCache.set(key, g);
+  return g;
+}
+
+/** A cylinder mesh along Z: radius, length, flat color, position. A different bottom radius makes a cone. */
+export function cyl(radius: number, length: number, color: number, x = 0, y = 0, z = 0, radiusBottom = radius, segments = 10): THREE.Mesh {
+  const m = new THREE.Mesh(shadedCylinder(radius, radiusBottom, length, segments), basicMat(color));
+  m.position.set(x, y, z);
+  return m;
+}
+
 /** A mesh made of a shaded box and a flat color. */
 export function box(w: number, h: number, d: number, color: number, x = 0, y = 0, z = 0): THREE.Mesh {
   const m = new THREE.Mesh(shadedBox(w, h, d), basicMat(color));

@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import {
   COLORS, DRONE, GameMode, MaterialId, PFlag, PhaseId, SIM_DT, Btn, EntityKind, HitKind,
   activeWeapon, activeWeaponId, buildShotRays, clamp, eyeHeight, lerp, makeCmd, makeRayHit, makeStepOut, operatorDef,
-  parseMap, quantizeCmd, raySphere, rayAabb, stateFromArray, wrapAngle, World, weaponDef, MAX_PELLETS, PLAYER,
+  parseMap, quantizeCmd, raySphere, rayAabb, spreadDeg, stateFromArray, wrapAngle, World, weaponDef, MAX_PELLETS, PLAYER,
+  KillCause, type WeaponDef,
   type ClientMsg, type GameEvent, type InputCmd, type PhaseInfo, type RoomState, type SelfExtra,
   type ServerMsg, type Snapshot, createPlayerState, type PlayerState, makeExtra, type SoundKind,
 } from '@holdfast/shared';
@@ -71,20 +72,24 @@ export class Game {
   // aim
   yaw = 0;
   pitch = 0;
-  private recoilPitch = 0;
-  private recoilYaw = 0;
-  private recoilVP = 0;
-  private recoilVY = 0;
+  /** The view shows the simulated recoil (the aim really moves), eased so a kick reads as a punch, not a jump. */
+  private viewRcP = 0;
+  private viewRcY = 0;
+  private flinchP = 0;
+  private flinchY = 0;
+  private sfxQueue: { at: number; name: string; gain: number; reload?: boolean }[] = [];
+  private lastAmmo = 0;
+  private shellCount = 0;
   private seq = 0;
   private acc = 0;
   private stepCount = 0;
   private lastFrame = 0;
   private stepOut = makeStepOut();
   private eyeH = PLAYER.eyeStand;
-  private adsT = 0;
   private rayBuf = new Float64Array(MAX_PELLETS * 3);
   private hitTmp = makeRayHit();
   private tmpV = new THREE.Vector3();
+  private tmpV2 = new THREE.Vector3();
 
   // state tracking for UI/audio
   private snapCount = 0;
@@ -304,14 +309,17 @@ export class Game {
         audio.ui('hurt', 0.8);
         this.host.haptic(40);
         this.effects.addShake(0.2);
+        // being hit knocks the view around a little (cosmetic only, the aim itself is not touched)
+        this.flinchP += 0.012 + Math.min(40, ev.dmg) * 0.0006;
+        this.flinchY += (Math.random() - 0.5) * (0.02 + Math.min(40, ev.dmg) * 0.0005);
         break;
       }
       case 'kill': {
         const kt = this.playerTeam(ev.killer);
         const vt = this.playerTeam(ev.victim);
-        const names = ['Carbine', 'Rattler', 'Hammer', 'Marksman', 'Sidearm', 'Breach', 'Trap'];
+        const cause = ev.w === KillCause.MELEE ? 'Melee' : ev.w === KillCause.BREACH ? 'Breach charge' : ev.w === KillCause.TRAP ? 'Trap' : ev.w === KillCause.FALL ? 'Fall' : weaponDef(ev.w).name;
         hud.killEntry(
-          this.playerName(ev.killer), this.playerName(ev.victim), names[ev.w] ?? 'Weapon', ev.head,
+          this.playerName(ev.killer), this.playerName(ev.victim), cause, ev.head,
           ev.killer === this.myId, ev.killer ? this.cssColor(this.teamColor(kt)) : '#aaa', this.cssColor(this.teamColor(vt)),
         );
         const pose = this.lastPoses.get(ev.victim);
@@ -341,7 +349,7 @@ export class Game {
         if (ev.id === this.myId) {
           this.yaw = ev.yaw;
           this.pitch = 0;
-          this.recoilPitch = this.recoilYaw = this.recoilVP = this.recoilVY = 0;
+          this.viewRcP = this.viewRcY = 0;
         }
         break;
       case 'tag':
@@ -536,8 +544,13 @@ export class Game {
       const ammo = s.slot === 0 ? s.ammo0 : s.ammo1;
       if (ammo <= 0 && !s.reloading) audio.ui('empty', 0.6);
     }
-    if (out.reloadStarted) audio.ui('reload', 0.8);
+    if (out.reloadStarted) this.startReloadSounds();
+    if (out.switched) audio.ui('draw', 0.5);
     if (out.switched || prevSlot !== s.slot) this.viewmodel.setWeapon(activeWeaponId(s));
+    // shotguns load one shell at a time: a click for each
+    const ammoNow = s.slot === 0 ? s.ammo0 : s.ammo1;
+    if (s.reloading && ammoNow > this.lastAmmo && !out.switched) audio.ui('shell_in', 0.6);
+    this.lastAmmo = ammoNow;
     if (out.vaultStarted) audio.ui('vault', 0.8);
     if (out.meleePressed && !s.dCtl && !s.cam && s.vault <= 0) {
       this.viewmodel.meleeSwing();
@@ -558,7 +571,8 @@ export class Game {
   private onLocalShot(shotIdx: number, weaponId: number): void {
     const def = weaponDef(weaponId);
     const s = this.pred.state;
-    buildShotRays(s, this.myId, shotIdx, def, this.rayBuf);
+    const aim = this.stepOut;
+    buildShotRays(aim.aimYaw, aim.aimPitch, aim.spread, this.myId, shotIdx, def, this.rayBuf);
     const ox = s.x;
     const oy = s.y + eyeHeight(s);
     const oz = s.z;
@@ -605,13 +619,63 @@ export class Game {
       if (wallHit) this.effects.impact(ex, ey, ez, wallN[0], wallN[1], wallN[2], false);
       else if (flesh) this.effects.impact(ex, ey, ez, 0, 0.4, 0, true);
     }
-    this.viewmodel.fire(def.recoilPitch);
-    const adsK = s.ads ? 0.55 : 1;
-    this.recoilVP += def.recoilPitch * 26 * adsK;
-    this.recoilVY += (Math.random() - 0.5) * def.recoilYaw * 26;
+    this.viewmodel.fire(def);
     this.host.audio.ui('shot_' + def.name.toLowerCase(), 0.95);
     this.host.haptic(def.pellets > 1 ? 30 : 12);
+    if (def.kind !== 'revolver') this.ejectShell(def);
     this.shotsFiredVisual++;
+  }
+
+  /** A spent casing flies out of the ejection port and clinks on the floor a moment later. */
+  private ejectShell(def: WeaponDef): void {
+    const cam = this.renderer.camera;
+    const p = this.viewmodel.ejectLocal(this.tmpV);
+    cam.localToWorld(p);
+    const px = p.x, py = p.y, pz = p.z;
+    const d = this.viewmodel.ejectDir(this.tmpV2);
+    d.transformDirection(cam.matrixWorld);
+    this.effects.shell(px, py, pz, d.x * 2.2, d.y * 2.2, d.z * 2.2, def.kind === 'shotgun' ? 0xc23b2a : 0xd8b04a);
+    this.shellCount++;
+    if (this.shellCount % 3 === 0) this.sfxQueue.push({ at: performance.now() + 380 + Math.random() * 120, name: 'casing', gain: 0.22 });
+  }
+
+  /** Queue the sounds of a reload (magazine out, magazine in, bolt) so they line up with the animation. */
+  private startReloadSounds(): void {
+    const s = this.pred.state;
+    const def = activeWeapon(s);
+    const now = performance.now();
+    const total = Math.max(0.2, s.reloadMax) * 1000;
+    this.sfxQueue = this.sfxQueue.filter((e) => !e.reload);
+    if (def.perShell) return;
+    const q = (frac: number, name: string, gain = 0.7): void => {
+      this.sfxQueue.push({ at: now + frac * total, name, gain, reload: true });
+    };
+    if (def.kind === 'revolver') {
+      q(0.15, 'mag_out');
+      q(0.55, 'shell_in');
+      q(0.88, 'mag_in');
+      return;
+    }
+    q(0.2, 'mag_out');
+    q(0.6, 'mag_in', 0.85);
+    if (!s.reloadTac) q(0.86, 'bolt');
+  }
+
+  private runSfxQueue(now: number): void {
+    if (!this.sfxQueue.length) return;
+    const s = this.pred.state;
+    const t = performance.now();
+    const keep: typeof this.sfxQueue = [];
+    for (const e of this.sfxQueue) {
+      if (e.at > t) {
+        keep.push(e);
+        continue;
+      }
+      if (e.reload && !s.reloading) continue;
+      this.host.audio.ui(e.name, e.gain);
+    }
+    this.sfxQueue = keep;
+    void now;
   }
 
   // -------------------------------------------------------------------------
@@ -631,14 +695,13 @@ export class Game {
     this.worldView.update(dt);
     this.effects.update(dt);
 
-    // recoil springs (cosmetic only), sub stepped so low frame rates stay stable
-    for (let left = dt; left > 0; left -= 1 / 120) {
-      const h = Math.min(left, 1 / 120);
-      this.recoilVP += (-this.recoilPitch * 160 - this.recoilVP * 16) * h;
-      this.recoilPitch += this.recoilVP * h;
-      this.recoilVY += (-this.recoilYaw * 160 - this.recoilVY * 16) * h;
-      this.recoilYaw += this.recoilVY * h;
-    }
+    // the view follows the simulated recoil quickly (a punch, not an instant jump)
+    const chase = Math.min(1, dt * 40);
+    this.viewRcP += (s.alive ? s.rcP - this.viewRcP : -this.viewRcP) * chase;
+    this.viewRcY += (s.alive ? s.rcY - this.viewRcY : -this.viewRcY) * chase;
+    const calm = Math.exp(-dt * 9);
+    this.flinchP *= calm;
+    this.flinchY *= calm;
 
     // camera
     const inLobby = this.phase.phase === PhaseId.LOBBY || this.phase.phase === PhaseId.OPERATOR_SELECT || this.phase.phase === PhaseId.MATCH_END;
@@ -734,15 +797,15 @@ export class Game {
         ey + (Math.random() - 0.5) * shake * 0.12,
         ez + (Math.random() - 0.5) * shake * 0.12,
       );
-      viewYaw = this.yaw + this.recoilYaw;
-      viewPitch = clamp(this.pitch + this.recoilPitch, -1.55, 1.55);
+      viewYaw = this.yaw + this.viewRcY + this.flinchY;
+      viewPitch = clamp(this.pitch + this.viewRcP + this.flinchP, -1.55, 1.55);
       cam.rotation.set(viewPitch, viewYaw, 0);
-      // fov and ads
+      // fov follows the simulated aiming blend
       const def = activeWeapon(s);
-      this.adsT += ((s.ads ? 1 : 0) - this.adsT) * Math.min(1, dt * 12);
       const base = this.baseVFov();
       const adsFov = def.adsFov * (base / 59);
-      const fov = lerp(base * (s.sprint ? 1.06 : 1), adsFov, this.adsT);
+      const adsK = lerp(this.pred.prev.adsAmt, s.adsAmt, this.acc / SIM_DT);
+      const fov = lerp(base * (s.sprint ? 1.06 : 1), adsFov, adsK);
       r.setFov(fov);
       if (s.vault > 0) cam.rotation.z = Math.sin((1 - s.vault / PLAYER.vaultTime) * Math.PI) * 0.05;
     }
@@ -750,11 +813,15 @@ export class Game {
 
     // viewmodel
     this.viewmodelVisible = fp && s.alive && s.vault <= 0 && this.playing;
-    const prog = s.reloading ? clamp(1 - s.reload / Math.max(0.1, activeWeapon(s).reload), 0, 1) : 0;
+    this.viewmodel.setWeapon(activeWeaponId(s)); // also follows loadout changes that do not switch slots
+    const prog = s.reloading ? clamp(1 - s.reload / Math.max(0.1, s.reloadMax), 0, 1) : 0;
+    const ammoNow = s.slot === 0 ? s.ammo0 : s.ammo1;
     this.viewmodel.update(dt, {
-      speed: Math.hypot(s.vx, s.vz), ads: s.ads, sprint: s.sprint, reloading: s.reloading, reloadProgress: prog,
+      speed: Math.hypot(s.vx, s.vz), adsAmt: lerp(this.pred.prev.adsAmt, s.adsAmt, this.acc / SIM_DT), sprint: s.sprint,
+      reloading: s.reloading, reloadProgress: prog, reloadTac: s.reloadTac, empty: ammoNow <= 0,
       lookDX: this.lastLookDX, lookDY: this.lastLookDY, onGround: s.onGround, crouch: s.crouch,
     }, this.viewmodelVisible);
+    this.runSfxQueue(now);
     this.lastLookDX *= 0.8;
     this.lastLookDY *= 0.8;
 
@@ -866,6 +933,7 @@ export class Game {
     m.ammo = s.slot === 0 ? s.ammo0 : s.ammo1;
     m.reserve = s.slot === 0 ? s.res0 : s.res1;
     m.magSize = def.mag;
+    m.fireMode = def.mode === 'auto' ? 'AUTO' : def.mode === 'burst' ? 'BURST' : 'SEMI';
     m.reloading = s.reloading;
     m.gadgetLabel = op.gadgetName !== 'None' && op.gadgetUses > 0 ? op.gadgetName : '';
     m.gadgetUses = this.extra.charges > 0 ? this.extra.charges : this.extra.gadget;
@@ -903,8 +971,11 @@ export class Game {
     m.prompt = s.alive && !s.dCtl ? (PROMPTS[this.extra.prompt] ?? '') : '';
     m.actProgress = this.extra.act ? this.extra.actP : 0;
     m.captureProgress = ph.phase === PhaseId.ACTION ? this.extra.cap : 0;
-    m.crosshair = 5 + (s.ads ? 0 : 5) + clamp(Math.hypot(s.vx, s.vz) * 1.6, 0, 9) + Math.abs(this.recoilPitch) * 420;
-    m.ads = s.ads;
+    // the crosshair is the real spread cone: its gap in pixels is where the edge of the cone lands on screen
+    const spreadRad = (spreadDeg(def, s) * Math.PI) / 180;
+    const fovRad = (this.renderer.fovCurrent * Math.PI) / 180;
+    m.crosshair = clamp(3 + (Math.tan(spreadRad) * (this.renderer.viewHeight / 2)) / Math.tan(fovRad / 2), 3, 90);
+    m.ads = s.adsAmt > 0.5;
     m.inDrone = s.dCtl && s.alive;
     m.droneHp = s.dhp;
     m.jammed = this.extra.jam === 1;

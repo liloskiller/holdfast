@@ -3,6 +3,7 @@
 
 import * as THREE from 'three';
 import { COLORS, PFlag, weaponDef } from '@holdfast/shared';
+import { buildGun } from './gunModels';
 import { basicMat, box } from './geo';
 import type { Pose } from '../net/Interpolation';
 
@@ -159,11 +160,11 @@ export class PlayerView {
       if (c !== this.flash) this.gun.remove(c);
     });
     const def = weaponDef(id);
-    const len = def.length * 0.8;
-    const g = box(0.07, 0.1, len, def.color, 0, 0, -len / 2 + 0.05);
-    const barrel = box(0.04, 0.04, 0.2, 0x111111, 0, 0.01, -len - 0.02);
-    this.gun.add(g, barrel);
-    this.flash.position.set(0, 0.01, -len - 0.2);
+    const m = buildGun(def);
+    m.group.scale.setScalar(0.9);
+    this.gun.add(m.group);
+    this.flash.position.copy(m.muzzle).multiplyScalar(0.9);
+    this.flash.scale.setScalar(def.suppressed ? 0.25 : 1);
   }
 
   setTeamColor(c: number): void {

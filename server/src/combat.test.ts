@@ -58,10 +58,10 @@ describe('combat', () => {
     b.state.hp = 100;
     const dy = 1.55 - 1.65;
     a.state.pitch = Math.atan2(dy, 7);
-    a.state.ads = true;
+    a.state.adsAmt = 1;
     shoot(room, a, 1, WeaponId.SIDEARM, room.time);
     expect(100 - b.state.hp).toBeGreaterThan(body * 2);
-    a.state.ads = false;
+    a.state.adsAmt = 0;
     b.state.alive = true;
     b.state.hp = 20;
     const kills = a.kills;

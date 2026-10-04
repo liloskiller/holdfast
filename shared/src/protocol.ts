@@ -243,9 +243,12 @@ export function decodeClient(raw: string): ClientMsg | null {
     case 'SET_READY': return typeof r['ready'] === 'boolean' ? { t: 'SET_READY', ready: r['ready'] } : null;
     case 'PICK_OPERATOR': {
       const op = num(r['op'], 0, 20);
-      const primary = num(r['primary'], 0, 10);
+      const primary = num(r['primary'], 0, 39);
       if (op === null || primary === null) return null;
-      return { t: 'PICK_OPERATOR', op: Math.round(op), primary: Math.round(primary) as 0 };
+      const m: ClientMsg = { t: 'PICK_OPERATOR', op: Math.round(op), primary: Math.round(primary) as 0 };
+      const secondary = num(r['secondary'], 0, 39);
+      if (secondary !== null) m.secondary = Math.round(secondary) as 0;
+      return m;
     }
     case 'SET_SETTINGS': {
       if (typeof r['settings'] !== 'object' || r['settings'] === null) return null;

@@ -1,7 +1,7 @@
 // Hitscan with server side lag compensation, damage, melee and death.
 
 import {
-  DRONE, HITBOX, HitKind, MAX_PELLETS, MaterialId, NET, PLAYER, SIEGE, WEAPONS, buildShotRays, damageFor,
+  DRONE, HITBOX, HitKind, KillCause, MAX_PELLETS, MaterialId, NET, PLAYER, SIEGE, buildShotRays, buildShotRaysFromState, damageFor,
   eyeHeight, makeRayHit, operatorDef, rayAabb, raySphere, weaponDef,
   type RayHit,
 } from '@holdfast/shared';
@@ -28,16 +28,24 @@ interface Pending {
   head: boolean;
 }
 
+/** The aim a shot was fired with: view angles including recoil, and the spread cone at that moment. */
+export interface ShotAim {
+  yaw: number;
+  pitch: number;
+  spread: number;
+}
+
 const RANGE = 160;
 
 /** Resolve a fired shot: lag compensated player hits, current world state for walls. */
-export function shoot(room: Room, shooter: Player, shotIdx: number, weaponId: number, clientTime: number): void {
+export function shoot(room: Room, shooter: Player, shotIdx: number, weaponId: number, clientTime: number, aim?: ShotAim): void {
   const def = weaponDef(weaponId);
   const s = shooter.state;
   const ox = s.x;
   const oy = s.y + eyeHeight(s);
   const oz = s.z;
-  buildShotRays(s, shooter.id, shotIdx, def, rays);
+  if (aim) buildShotRays(aim.yaw, aim.pitch, aim.spread, shooter.id, shotIdx, def, rays);
+  else buildShotRaysFromState(s, shooter.id, shotIdx, def, rays);
 
   // rewind time: the shooter sees others `interpDelay` in the past
   let tr = room.time;
@@ -82,6 +90,7 @@ export function shoot(room: Room, shooter: Player, shotIdx: number, weaponId: nu
       let bestT = worldT;
       let bestPlayer: PlayerTarget | null = null;
       let bestHead = false;
+      let bestLeg = false;
       let bestDrone: Player | null = null;
       let bestEntity: Entity | null = null;
       for (const t of targets) {
@@ -93,9 +102,10 @@ export function shoot(room: Room, shooter: Player, shotIdx: number, weaponId: nu
           t.x + HITBOX.bodyHalf, t.y + eye - HITBOX.bodyTopFromEye, t.z + HITBOX.bodyHalf, bestT,
         );
         if (th >= 0 && th <= bestT && (tb < 0 || th <= tb + 0.02)) {
-          bestT = th; bestPlayer = t; bestHead = true; bestDrone = null; bestEntity = null;
+          bestT = th; bestPlayer = t; bestHead = true; bestLeg = false; bestDrone = null; bestEntity = null;
         } else if (tb >= 0 && tb < bestT) {
           bestT = tb; bestPlayer = t; bestHead = false; bestDrone = null; bestEntity = null;
+          bestLeg = cy + dy * tb - t.y < (t.crouch ? HITBOX.legTopCrouch : HITBOX.legTopStand);
         }
       }
       for (const o of room.players.values()) {
@@ -120,7 +130,7 @@ export function shoot(room: Room, shooter: Player, shotIdx: number, weaponId: nu
         endKind = 2;
         if (bestPlayer) {
           const dist = travelled + bestT;
-          const dmg = damageFor(def, dist, bestHead, mul);
+          const dmg = damageFor(def, dist, bestHead, mul * (bestLeg ? HITBOX.legMul : 1));
           const cur = pending.get(bestPlayer.p.id);
           if (cur) {
             cur.dmg += dmg;
@@ -173,7 +183,7 @@ export function shoot(room: Room, shooter: Player, shotIdx: number, weaponId: nu
           if (SIEGE.penetrationEnabled && room.world.isSoftMaterial(mat) && walls < SIEGE.penetrationMaxWalls) {
             penetrate = true;
             walls++;
-            mul *= SIEGE.penetrationDamageMul;
+            mul *= def.pen;
             if (!destroyed) skip = 0.55;
           }
         } else if (!soundDone.has('m')) {
@@ -209,7 +219,7 @@ export function shoot(room: Room, shooter: Player, shotIdx: number, weaponId: nu
 
   const ev = { k: 'shot' as const, id: shooter.id, w: weaponId, ox: round2(ox), oy: round2(oy), oz: round2(oz), ends };
   room.shots.push({ src: shooter.id, team: shooter.team, ev, x: ox, y: oy, z: oz, ends });
-  room.sound('shot', ox, oy, oz, def.id === WEAPONS[4]?.id ? 45 : 60, shooter.id, shooter.team);
+  room.sound('shot', ox, oy, oz, def.loudness, shooter.id, shooter.team);
 }
 
 function round2(v: number): number {
@@ -302,7 +312,7 @@ export function melee(room: Room, p: Player): void {
     bestD = d;
   }
   if (best) {
-    const killed = applyDamage(room, best, p, SIEGE.meleeDamage, false, 4);
+    const killed = applyDamage(room, best, p, SIEGE.meleeDamage, false, KillCause.MELEE);
     room.pushEvent(p.id, { k: 'hit', head: false, kill: killed, dmg: SIEGE.meleeDamage });
     return;
   }

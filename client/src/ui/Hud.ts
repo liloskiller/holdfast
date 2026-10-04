@@ -14,6 +14,7 @@ export interface HudModel {
   hp: number;
   maxHp: number;
   weaponName: string;
+  fireMode: string;
   ammo: number;
   reserve: number;
   magSize: number;
@@ -53,7 +54,7 @@ export interface HudModel {
 
 export function emptyModel(): HudModel {
   return {
-    alive: true, hp: 100, maxHp: 100, weaponName: '', ammo: 0, reserve: 0, magSize: 0, reloading: false,
+    alive: true, hp: 100, maxHp: 100, weaponName: '', fireMode: '', ammo: 0, reserve: 0, magSize: 0, reloading: false,
     gadgetLabel: '', gadgetUses: 0, gadgetCd: 0, reinf: 0, showReinf: false, timer: '', timerHot: false,
     phaseLabel: '', scoreFriend: 0, scoreFoe: 0, friendAlive: 0, foeAlive: 0, friendTotal: 0, foeTotal: 0,
     role: 'free', prompt: '', actProgress: 0, captureProgress: 0, crosshair: 6, ads: false, inDrone: false,
@@ -187,8 +188,8 @@ export class Hud {
     setClass(n['role'] as HTMLElement, 'atk', m.role === 'attack');
     setClass(n['role'] as HTMLElement, 'def', m.role === 'defend');
 
-    setText(n['weapon'] as HTMLElement, m.weaponName);
-    setText(n['ammo'] as HTMLElement, m.reloading ? '...' : String(m.ammo));
+    setText(n['weapon'] as HTMLElement, m.weaponName + (m.fireMode ? '   ' + m.fireMode : ''));
+    setText(n['ammo'] as HTMLElement, m.reloading ? '...' : m.ammo > m.magSize ? `${m.magSize}+${m.ammo - m.magSize}` : String(m.ammo));
     setClass(n['ammo'] as HTMLElement, 'low', m.ammo <= Math.max(2, m.magSize * 0.2) && !m.reloading);
     setText(n['reserve'] as HTMLElement, '/ ' + m.reserve);
     const gad = m.gadgetLabel ? `${m.gadgetLabel}  x${m.gadgetUses}${m.gadgetCd > 0.05 ? '  ' + Math.ceil(m.gadgetCd) + 's' : ''}` : '';

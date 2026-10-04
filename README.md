@@ -86,6 +86,31 @@ If someone's connection drops, they keep their slot: a 3 second grace period bef
 | Eye | Defend | Security cameras |
 | Recruit | Both | No gadget, always available |
 
+## Weapons and gunplay
+
+Every operator carries a primary and a sidearm, picked on the operator screen (the screen shows damage, rate, range, control and mobility bars). Switch with `1` / `2` / `Q`.
+
+| Weapon | Role | Notes |
+|---|---|---|
+| Carbine | Rifle | All round, 650 rpm, 30+1 |
+| Talon | Burst rifle | 3 round bursts, one press per burst, precise |
+| Rattler | SMG | Fast, light recoil, short range |
+| Whisper | Suppressed SMG | Almost silent, so it does not give your position away on the enemy compass, lower damage |
+| Hammer | Pump shotgun | 8 pellets, loads shell by shell (fire to interrupt) |
+| Marksman | DMR | One hit headshots, slow to aim, scope |
+| Anvil | LMG | 60 rounds, heavy recoil, slow to aim and raise, chews through walls |
+| Sidearm | Pistol | 12+1, one hit headshots |
+| Magnum | Heavy pistol | 6 rounds, 62 damage, strong kick |
+
+How guns behave (all simulated by the shared step, so the server and your prediction agree):
+
+- **Recoil is real.** Each shot kicks the aim up and a little sideways (a per weapon pattern plus a bit of randomness). The kick climbs while you hold the trigger and settles when you let go, so you pull down to hold a target. Crouching, aiming and standing still reduce it, moving and jumping increase it. The first shot of a spray is always accurate.
+- **Bloom.** Sustained fire opens the spread cone, tapping lets it close. The crosshair is the real cone, so what you see is what you get.
+- **Aiming takes time** (SMGs are fast, the LMG and DMR slow), and you cannot shoot for a moment after sprinting or switching. Reloading drops the sights.
+- **Reloads.** A tactical reload (rounds left) is quicker and leaves one in the chamber (30+1). An empty reload is slower. Shotguns load shell by shell.
+- **Hit zones.** Head (big multiplier), body, legs (80 percent). Damage drops with range. Bullets go through soft walls with a loss that depends on the weapon (the Marksman and Anvil keep the most).
+- A click made just before the gun is ready is remembered, so semi automatic weapons never feel like they ate your input.
+
 ## Scripts
 
 | Command | What it does |

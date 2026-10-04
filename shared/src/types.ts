@@ -86,9 +86,20 @@ export interface PlayerState {
   res0: number;
   res1: number;
   reloading: boolean;
-  reload: number;
+  reload: number; // seconds left
+  reloadMax: number; // total duration of the reload in progress (for animation)
+  reloadTac: boolean; // the reload in progress started with rounds in the gun (tactical)
   cooldown: number;
   shotIdx: number;
+  // gunplay: aim down sights blend, recoil (the aim really moves), bloom, spray counter
+  adsAmt: number; // 0 hip .. 1 fully aimed
+  rcP: number; // accumulated upward kick (rad), added to the aim pitch when firing and to the view
+  rcY: number; // accumulated sideways kick (rad)
+  bloom: number; // extra spread (degrees) from sustained fire
+  sinceShot: number; // seconds since the last shot
+  spray: number; // consecutive shots in the current spray
+  burstLeft: number; // shots still to fire in the current burst
+  fireBuf: number; // a click made during the cooldown is remembered for a moment
   // use button tracking
   useHeld: number;
   prevButtons: number;
@@ -113,13 +124,14 @@ export interface PlayerState {
 }
 
 const BOOL_KEYS: readonly (keyof PlayerState)[] = [
-  'crouch', 'onGround', 'sprint', 'ads', 'reloading', 'dDeployed', 'dCtl', 'cam', 'confined', 'alive',
+  'crouch', 'onGround', 'sprint', 'ads', 'reloading', 'reloadTac', 'dDeployed', 'dCtl', 'cam', 'confined', 'alive',
 ];
 
 const STATE_KEYS: readonly (keyof PlayerState)[] = [
   'x', 'y', 'z', 'vx', 'vy', 'vz', 'yaw', 'pitch', 'crouch', 'onGround', 'sprint', 'ads',
   'vault', 'vfx', 'vfy', 'vfz', 'vtx', 'vty', 'vtz',
-  'slot', 'w0', 'w1', 'ammo0', 'ammo1', 'res0', 'res1', 'reloading', 'reload', 'cooldown', 'shotIdx',
+  'slot', 'w0', 'w1', 'ammo0', 'ammo1', 'res0', 'res1', 'reloading', 'reload', 'reloadMax', 'reloadTac', 'cooldown', 'shotIdx',
+  'adsAmt', 'rcP', 'rcY', 'bloom', 'sinceShot', 'spray', 'burstLeft', 'fireBuf',
   'useHeld', 'prevButtons',
   'dDeployed', 'dCtl', 'dx', 'dy', 'dz', 'dvx', 'dvy', 'dvz', 'dhp', 'cam',
   'slow', 'confined', 'spdMul', 'alive', 'hp',
@@ -133,7 +145,8 @@ export function createPlayerState(): PlayerState {
     crouch: false, onGround: false, sprint: false, ads: false,
     vault: 0, vfx: 0, vfy: 0, vfz: 0, vtx: 0, vty: 0, vtz: 0,
     slot: 0, w0: 0, w1: 4, ammo0: 0, ammo1: 0, res0: 0, res1: 0,
-    reloading: false, reload: 0, cooldown: 0, shotIdx: 0,
+    reloading: false, reload: 0, reloadMax: 0, reloadTac: false, cooldown: 0, shotIdx: 0,
+    adsAmt: 0, rcP: 0, rcY: 0, bloom: 0, sinceShot: 9, spray: 0, burstLeft: 0, fireBuf: 0,
     useHeld: 0, prevButtons: 0,
     dDeployed: false, dCtl: false, dx: 0, dy: 0, dz: 0, dvx: 0, dvy: 0, dvz: 0, dhp: 0, cam: false,
     slow: 0, confined: false, spdMul: 1, alive: true, hp: PLAYER.maxHp,
@@ -189,6 +202,7 @@ export interface RoomPlayerInfo {
   ready: boolean;
   op: number;
   primary: number;
+  secondary: number;
   host: boolean;
   connected: boolean;
   kills: number;
@@ -345,7 +359,7 @@ export type ClientMsg =
   | { t: 'JOIN_ROOM'; code: string; name: string; token?: string }
   | { t: 'SET_TEAM'; team: 0 | 1 }
   | { t: 'SET_READY'; ready: boolean }
-  | { t: 'PICK_OPERATOR'; op: number; primary: WeaponId }
+  | { t: 'PICK_OPERATOR'; op: number; primary: WeaponId; secondary?: WeaponId }
   | { t: 'SET_SETTINGS'; settings: Partial<RoomSettings> }
   | { t: 'START_MATCH' }
   | { t: 'INPUT'; cmds: InputCmd[] }

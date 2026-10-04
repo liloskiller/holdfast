@@ -72,6 +72,7 @@ function startRound(room: Room): void {
     }
     p.op = defaultOperator(sideOf(room, p));
     p.primary = (operatorDef(p.op).primaries[0] as number);
+    p.secondary = (operatorDef(p.op).secondaries[0] as number);
     p.picked = false;
     p.state.alive = false;
     p.state.hp = 0;
@@ -94,6 +95,7 @@ function startPrep(room: Room): void {
     if (wrongSide || (def.unique && taken.has(key))) {
       p.op = defaultOperator(sideOf(room, p));
       p.primary = (operatorDef(p.op).primaries[0] as number);
+      p.secondary = (operatorDef(p.op).secondaries[0] as number);
     }
     if (def.unique) taken.add(key);
   }
@@ -156,7 +158,7 @@ function toLobby(room: Room): void {
 // ---------------------------------------------------------------------------
 
 /** Validate and apply an operator pick. Returns an error message or null. */
-export function applyPick(room: Room, p: Player, op: number, primary: number, force: boolean): string | null {
+export function applyPick(room: Room, p: Player, op: number, primary: number, force: boolean, secondary?: number): string | null {
   if (op < 0 || op >= OPERATORS.length) return 'Unknown operator';
   const def = operatorDef(op);
   if (!force) {
@@ -169,6 +171,7 @@ export function applyPick(room: Room, p: Player, op: number, primary: number, fo
   }
   p.op = op;
   p.primary = def.primaries.includes(primary as 0) ? primary : (def.primaries[0] as number);
+  p.secondary = secondary !== undefined && def.secondaries.includes(secondary as 0) ? secondary : (def.secondaries[0] as number);
   p.picked = true;
   room.markRoomDirty();
   return null;
@@ -204,7 +207,8 @@ function setupState(room: Room, p: Player, spawn: SpawnPoint | { x: number; y: n
   s.useHeld = 0;
   s.confined = false;
   p.primary = def.primaries.includes(p.primary as 0) ? p.primary : (def.primaries[0] as number);
-  resetLoadout(s, p.primary);
+  p.secondary = def.secondaries.includes(p.secondary as 0) ? p.secondary : (def.secondaries[0] as number);
+  resetLoadout(s, p.primary, p.secondary);
 
   const defender = room.canDefenderStuff(p);
   p.reinf = defender ? (room.sandbox ? 3 : 2) + def.reinforceCharges : 0;
@@ -303,6 +307,7 @@ export function sandboxStart(room: Room): void {
     d.team = 1;
     d.op = defaultOperator('defend');
     d.primary = 0;
+    d.secondary = 4;
     d.connected = true;
     room.players.set(d.id, d);
     spawnRoundPlayer(room, d);

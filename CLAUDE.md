@@ -63,4 +63,4 @@ Units: **1 world unit = 1 meter.** Y is up. Right handed (Three.js default).
 - `server/src/engine.ts` is platform neutral (no Node imports) so the same Room code runs in Node (real server) and in the browser (Practice mode over a loopback transport).
 - The map is plain ASCII in `shared/maps/safehouse.map.txt`. After editing run `npm run map:check`.
 - Run `npm run typecheck && npm test` before every commit.
-
+- **Changes that supersede PLAN.md:** the drone is a grounded RC car with a hop, not a flyer (8.2). Gunplay v2 replaces 6.1 and 6.3: nine weapons, real server side recoil (the aim moves, `applyKick` / `settleRecoil` in `shared/src/weapons.ts`), bloom, timed ADS, tactical reloads with a chambered round, burst and suppressed weapons, a sidearm pick, leg hits and per weapon wall penetration. Weapon ids are always below 40, kill feed causes that are not guns live in `KillCause`.

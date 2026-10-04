@@ -100,6 +100,11 @@ export class Renderer {
     this.vmScene.add(this.vmCamera);
   }
 
+  /** Height of the drawing area in CSS pixels. */
+  get viewHeight(): number {
+    return this.height;
+  }
+
   get aspect(): number {
     return this.width / this.height;
   }

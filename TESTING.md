@@ -23,9 +23,14 @@ Targets: desktop Chrome, Android Chrome, iPhone Safari in the browser, iPhone Sa
 - [ ] Shoot a floor hatch from below and from above, drop through it
 
 ### Combat
+- [ ] Recoil: hold fire with the Carbine, the view climbs, pulling the mouse down keeps shots on target, releasing settles it. Crosshair widens during a spray and closes when you stop.
+- [ ] ADS speed: SMG snaps up, Marksman and Anvil take noticeably longer. Reload cancels aiming.
+- [ ] Reload: with rounds left it ends on 30+1 and is quicker than an empty reload. Shotgun loads shell by shell and firing interrupts it.
+- [ ] Talon fires exactly 3 rounds per click. Whisper does not light up the compass of an enemy at range.
+- [ ] Legs do less damage than the body, headshots with Marksman / Sidearm / Magnum kill in one hit.
 - [ ] Targets die, kill feed shows, hit marker and headshot sound differ
 - [ ] Reload, swap weapons, ADS, kick a barricade
-- [ ] Recoil is subtle, tracers and sparks appear, no stutter when firing a shotgun
+- [ ] Tracers, sparks and ejected shells appear, no stutter when firing a shotgun
 
 ### Online (two or more devices)
 - [ ] Create a room on one device, join by code and by QR on others

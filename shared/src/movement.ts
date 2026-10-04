@@ -2,10 +2,10 @@
 // No Date, no Math.random, no DOM, no Three.js.
 
 import { BOX_STRIDE, clipAxis } from './collision';
-import { DRONE, PLAYER, SWITCH_TIME, TILE } from './constants';
+import { DRONE, PLAYER, TILE } from './constants';
 import { clamp } from './math';
 import { Btn, type InputCmd, type PlayerState } from './types';
-import { fireInterval, weaponDef } from './weapons';
+import { ammoCap, applyKick, burstInterval, fireInterval, settleRecoil, spreadDeg, weaponDef } from './weapons';
 import type { VaultTarget, World } from './world';
 
 export interface StepOut {
@@ -13,6 +13,10 @@ export interface StepOut {
   /** Index of the shot that was fired (seed input), valid when fired is true. */
   shotIdx: number;
   weapon: number;
+  /** Aim (including recoil before this shot's kick) and spread of the shot that was fired. */
+  aimYaw: number;
+  aimPitch: number;
+  spread: number;
   reloadStarted: boolean;
   switched: boolean;
   vaultStarted: boolean;
@@ -33,7 +37,7 @@ export interface StepOut {
 
 export function makeStepOut(): StepOut {
   return {
-    fired: false, shotIdx: 0, weapon: 0, reloadStarted: false, switched: false, vaultStarted: false,
+    fired: false, shotIdx: 0, weapon: 0, aimYaw: 0, aimPitch: 0, spread: 0, reloadStarted: false, switched: false, vaultStarted: false,
     tapUse: false, droneToggled: false, dronePressed: false, meleePressed: false, gadgetPressed: false, firePressed: false,
     cameraPressed: false, droneHop: false, droneLand: 0,
   };
@@ -275,6 +279,8 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     s.vz = 0;
     s.sprint = false;
     s.ads = false;
+    s.adsAmt = 0;
+    s.burstLeft = 0;
     s.yaw = cmd.yaw;
     s.pitch = cmd.pitch;
     return;
@@ -291,7 +297,9 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
   // cooldown keeps a small negative carry so the fire rate matches the RPM exactly
   s.cooldown -= dt;
   if (s.cooldown < -dt) s.cooldown = -dt;
+  if (s.fireBuf > 0) s.fireBuf = Math.max(0, s.fireBuf - dt);
   if (s.slow > 0) s.slow = Math.max(0, s.slow - dt);
+  settleRecoil(s, weaponDef(s.slot === 0 ? s.w0 : s.w1), dt);
 
   // INTERACT hold tracking
   if (buttons & Btn.INTERACT) {
@@ -317,6 +325,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     s.vz = 0;
     s.sprint = false;
     s.ads = false;
+    s.adsAmt = Math.max(0, s.adsAmt - dt * 8);
     stepDrone(s, world, dt, cmd.moveX, cmd.moveZ, cmd.yaw, (pressed & Btn.UP) !== 0, out);
     snapOrFall(s, world, s.onGround, dt);
     return;
@@ -327,6 +336,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     s.vz = 0;
     s.sprint = false;
     s.ads = false;
+    s.adsAmt = Math.max(0, s.adsAmt - dt * 8);
     snapOrFall(s, world, s.onGround, dt);
     return;
   }
@@ -343,6 +353,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     s.vy = 0;
     s.sprint = false;
     s.ads = false;
+    s.adsAmt = Math.max(0, s.adsAmt - dt * 8);
     if (s.vault <= 0) {
       s.vault = 0;
       s.x = s.vtx;
@@ -376,7 +387,10 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     s.slot = cmd.slot ? 1 : 0;
     s.reloading = false;
     s.reload = 0;
-    s.cooldown = SWITCH_TIME;
+    s.burstLeft = 0;
+    s.fireBuf = 0;
+    s.adsAmt = 0;
+    s.cooldown = weaponDef(s.slot === 0 ? s.w0 : s.w1).drawTime;
     out.switched = true;
   }
   const def = weaponDef(s.slot === 0 ? s.w0 : s.w1);
@@ -390,13 +404,19 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
   if (mlen > 1) { mx /= mlen; mz /= mlen; }
   const hasInput = mlen > 0.01;
 
-  const wantAds = (buttons & Btn.ADS) !== 0;
+  const wasSprint = s.sprint;
+  const wantAds = (buttons & Btn.ADS) !== 0 && !s.reloading;
   const wantSprint = (buttons & Btn.SPRINT) !== 0 && mz > 0.1 && !s.crouch && !wantAds && (buttons & Btn.FIRE) === 0;
   s.sprint = wantSprint && hasInput;
   s.ads = wantAds && !s.sprint;
+  // aiming takes time (and un-aiming is a bit quicker), the gun cannot fire right after a sprint
+  const adsStep = dt / Math.max(0.05, def.adsTime);
+  s.adsAmt = s.ads ? Math.min(1, s.adsAmt + adsStep) : Math.max(0, s.adsAmt - adsStep * 1.6);
+  if (wasSprint && !s.sprint) s.cooldown = Math.max(s.cooldown, def.sprintOut);
 
   let speed = s.crouch ? PLAYER.crouchSpeed : s.sprint ? PLAYER.sprint : PLAYER.walk;
-  if (s.ads) speed *= def.adsMoveMul;
+  speed *= 1 + (def.adsMoveMul - 1) * s.adsAmt;
+  speed *= def.moveMul;
   if (s.slow > 0) speed *= 0.3;
   speed *= s.spdMul;
 
@@ -428,9 +448,8 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
   let ammo = s.slot === 0 ? s.ammo0 : s.ammo1;
   let res = s.slot === 0 ? s.res0 : s.res1;
 
-  if (pressed & Btn.RELOAD && !s.reloading && ammo < def.mag && res > 0) {
-    s.reloading = true;
-    s.reload = def.reload;
+  if (pressed & Btn.RELOAD && !s.reloading && ammo < ammoCap(def, ammo > 0) && res > 0) {
+    startReload(s, def, ammo);
     out.reloadStarted = true;
   }
   if (s.reloading) {
@@ -442,7 +461,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
         if (ammo < def.mag && res > 0) s.reload += def.reload;
         else { s.reloading = false; s.reload = 0; }
       } else {
-        const take = Math.min(def.mag - ammo, res);
+        const take = Math.min(ammoCap(def, s.reloadTac) - ammo, res);
         ammo += take;
         res -= take;
         s.reloading = false;
@@ -451,26 +470,54 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     }
   }
 
+  // A click during the cooldown is remembered for a moment so semi automatic weapons feel responsive.
   const fireHeld = (buttons & Btn.FIRE) !== 0;
-  const wantFire = fireHeld && (def.auto || (pressed & Btn.FIRE) !== 0);
+  const clicked = (pressed & Btn.FIRE) !== 0 || s.fireBuf > 0;
+  const trigger = (def.mode === 'auto' && fireHeld) || clicked;
+  if (def.mode === 'burst' && trigger && s.burstLeft === 0 && s.cooldown <= 0 && ammo > 0 && !s.reloading) s.burstLeft = def.burst;
+  const wantFire = def.mode === 'burst' ? s.burstLeft > 0 : trigger;
   if (wantFire) {
     if (ammo <= 0) {
+      s.burstLeft = 0;
+      s.fireBuf = 0;
       if (!s.reloading && res > 0 && (pressed & Btn.FIRE) !== 0) {
-        s.reloading = true;
-        s.reload = def.reload;
+        startReload(s, def, ammo);
         out.reloadStarted = true;
       }
     } else if (s.cooldown <= 0 && (!s.reloading || def.perShell)) {
       if (s.reloading) { s.reloading = false; s.reload = 0; }
       ammo -= 1;
-      s.cooldown += fireInterval(def);
+      s.fireBuf = 0;
       out.fired = true;
       out.shotIdx = s.shotIdx;
       out.weapon = def.id;
+      out.aimYaw = s.yaw + s.rcY;
+      out.aimPitch = s.pitch + s.rcP;
+      out.spread = spreadDeg(def, s);
       s.shotIdx += 1;
+      applyKick(s, def);
+      if (def.mode === 'burst') {
+        s.burstLeft -= 1;
+        s.cooldown += s.burstLeft > 0 ? burstInterval(def) : def.burstGap;
+      } else {
+        s.cooldown += fireInterval(def);
+      }
+    } else if (def.mode !== 'auto' && (pressed & Btn.FIRE) !== 0 && s.cooldown < FIRE_BUFFER) {
+      s.fireBuf = FIRE_BUFFER;
     }
   }
 
   if (s.slot === 0) { s.ammo0 = ammo; s.res0 = res; } else { s.ammo1 = ammo; s.res1 = res; }
 }
 
+const FIRE_BUFFER = 0.12;
+
+function startReload(s: PlayerState, def: WeaponDefLike, ammo: number): void {
+  s.reloading = true;
+  s.reloadTac = ammo > 0;
+  s.reloadMax = def.perShell || ammo > 0 ? def.reload : def.reloadEmpty;
+  s.reload = s.reloadMax;
+  s.burstLeft = 0;
+}
+
+type WeaponDefLike = ReturnType<typeof weaponDef>;

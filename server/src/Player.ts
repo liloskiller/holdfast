@@ -27,6 +27,7 @@ export class Player {
 
   op: number = OperatorId.RECRUIT_A;
   primary = 0;
+  secondary = 4;
 
   state: PlayerState = createPlayerState();
 

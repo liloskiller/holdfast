@@ -119,6 +119,45 @@ const GENERATORS: Record<string, Gen> = {
   shot_hammer: (sr) => gunshot(sr, { crack: 0.7, body: 1.0, thump: 1.0, decay: 170, tail: 320, hp: 900, lpc: 1100 }),
   shot_marksman: (sr) => gunshot(sr, { crack: 1.0, body: 0.9, thump: 0.8, decay: 130, tail: 420, hp: 1500, lpc: 1400 }),
   shot_sidearm: (sr) => gunshot(sr, { crack: 1.0, body: 0.6, thump: 0.5, decay: 70, tail: 160, hp: 2200, lpc: 1900 }),
+  shot_anvil: (sr) => gunshot(sr, { crack: 0.75, body: 1.0, thump: 1.0, decay: 115, tail: 380, hp: 1200, lpc: 1100 }),
+  shot_talon: (sr) => gunshot(sr, { crack: 0.95, body: 0.7, thump: 0.6, decay: 75, tail: 200, hp: 2000, lpc: 1700 }),
+  shot_magnum: (sr) => gunshot(sr, { crack: 1.0, body: 1.0, thump: 1.1, decay: 125, tail: 400, hp: 1000, lpc: 1200 }),
+  // suppressed: a dull puff and the mechanism clacking
+  shot_whisper: (sr) => {
+    const n = Math.floor(sr * 0.14);
+    const puff = mul(lowpass(noise(n), 1400, sr), expEnv(n, sr, 22));
+    const clack = mul(highpass(noise(n), 2600, sr), expEnv(n, sr, 9));
+    const thud = mul(osc(n, sr, (t) => 150 * Math.exp(-t * 30) + 80), expEnv(n, sr, 28));
+    return mix(n, [[puff, 0.55], [clack, 0.3], [thud, 0.5]]);
+  },
+  // handling sounds
+  mag_out: (sr) => {
+    const n = Math.floor(sr * 0.2);
+    return mix(n, [[mul(highpass(noise(n), 1800, sr), expEnv(n, sr, 12)), 0.5], [mul(bandpass(noise(n), 300, 1500, sr), expEnv(n, sr, 40, 30)), 0.35]], [0, Math.floor(sr * 0.05)]);
+  },
+  mag_in: (sr) => {
+    const n = Math.floor(sr * 0.22);
+    return mix(n, [[mul(osc(n, sr, () => 190), expEnv(n, sr, 30)), 0.5], [mul(highpass(noise(n), 2200, sr), expEnv(n, sr, 10)), 0.6]], [0, Math.floor(sr * 0.03)]);
+  },
+  bolt: (sr) => {
+    const n = Math.floor(sr * 0.3);
+    const a = mul(highpass(noise(n), 2000, sr), expEnv(n, sr, 9));
+    const b = mul(osc(n, sr, () => 820), expEnv(n, sr, 22));
+    return mix(n, [[a, 0.5], [b, 0.2], [a, 0.6], [b, 0.25]], [0, 0, Math.floor(sr * 0.14), Math.floor(sr * 0.14)]);
+  },
+  shell_in: (sr) => {
+    const n = Math.floor(sr * 0.12);
+    return mix(n, [[mul(highpass(noise(n), 2600, sr), expEnv(n, sr, 8)), 0.55], [mul(osc(n, sr, () => 1250), expEnv(n, sr, 18)), 0.2]]);
+  },
+  casing: (sr) => {
+    const n = Math.floor(sr * 0.25);
+    const f = 3200 + rnd() * 900;
+    return mix(n, [[mul(osc(n, sr, () => f), expEnv(n, sr, 55)), 0.4], [mul(osc(n, sr, () => f * 1.5), expEnv(n, sr, 35)), 0.15]], [0, Math.floor(sr * 0.04)]);
+  },
+  draw: (sr) => {
+    const n = Math.floor(sr * 0.22);
+    return mix(n, [[mul(bandpass(noise(n), 250, 1800, sr), expEnv(n, sr, 55, 25)), 0.4], [mul(highpass(noise(n), 2500, sr), expEnv(n, sr, 10)), 0.35]], [0, Math.floor(sr * 0.1)]);
+  },
   reload: (sr) => {
     const n = Math.floor(sr * 0.5);
     const c1 = mul(highpass(noise(n), 2200, sr), expEnv(n, sr, 10));

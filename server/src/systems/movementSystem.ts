@@ -44,7 +44,7 @@ function applyCmd(room: Room, p: Player, cmd: InputCmd): void {
 
   const eyeY = s.y + (s.crouch ? 1.15 : 1.65);
 
-  if (out.fired) shoot(room, p, out.shotIdx, out.weapon, cmd.clientTime);
+  if (out.fired) shoot(room, p, out.shotIdx, out.weapon, cmd.clientTime, { yaw: out.aimYaw, pitch: out.aimPitch, spread: out.spread });
   if (out.reloadStarted) room.sound('reload', s.x, eyeY, s.z, 8, p.id, p.team);
   if (out.vaultStarted) room.sound('vault', s.x, s.y + 1, s.z, 10, p.id, p.team);
 
