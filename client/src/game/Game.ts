@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import {
-  BombState, COLORS, DRONE, GameMode, MaterialId, PFlag, PhaseId, SIM_DT, Btn, EntityKind, HitKind,
+  BombState, COLORS, DRONE, GameMode, ThrowKind, throwDef, MaterialId, PFlag, PhaseId, SIM_DT, Btn, EntityKind, HitKind,
   activeWeapon, activeWeaponId, buildShotRays, clamp, eyeHeight, lerp, makeCmd, makeRayHit, makeStepOut, operatorDef,
   parseMap, quantizeCmd, raySphere, rayAabb, spreadDeg, stateFromArray, wrapAngle, World, weaponDef, MAX_PELLETS, PLAYER,
   KillCause, LEAN, leanVec, type WeaponDef,
@@ -58,6 +58,7 @@ export class Game {
   private effects: Effects;
   private entityViews: EntityViews;
   private viewmodel: Viewmodel;
+  private lastFlash = 0;
   private pred = new Prediction();
   private interp = new Interpolator();
   private playerViews = new Map<number, PlayerView>();
@@ -319,7 +320,7 @@ export class Game {
       case 'kill': {
         const kt = this.playerTeam(ev.killer);
         const vt = this.playerTeam(ev.victim);
-        const cause = ev.w === KillCause.MELEE ? 'Melee' : ev.w === KillCause.BREACH ? 'Breach charge' : ev.w === KillCause.TRAP ? 'Trap' : ev.w === KillCause.FALL ? 'Fall' : ev.w === KillCause.BOMB ? 'Defuser blast' : weaponDef(ev.w).name;
+        const cause = ev.w === KillCause.MELEE ? 'Melee' : ev.w === KillCause.BREACH ? 'Breach charge' : ev.w === KillCause.TRAP ? 'Trap' : ev.w === KillCause.FALL ? 'Fall' : ev.w === KillCause.BOMB ? 'Defuser blast' : ev.w === KillCause.GRENADE ? 'Grenade' : ev.w === KillCause.WIRE ? 'Barbed wire' : weaponDef(ev.w).name;
         hud.killEntry(
           this.playerName(ev.killer), this.playerName(ev.victim), cause, ev.head,
           ev.killer === this.myId, ev.killer ? this.cssColor(this.teamColor(kt)) : '#aaa', this.cssColor(this.teamColor(vt)),
@@ -955,6 +956,16 @@ export class Game {
     m.gadgetUses = this.extra.charges > 0 ? this.extra.charges : this.extra.gadget;
     if (this.extra.charges > 0) m.gadgetLabel = 'DETONATE';
     m.gadgetCd = this.extra.gadgetCd;
+    const tdef = throwDef(this.extra.thr);
+    m.thrLabel = this.extra.thr !== ThrowKind.NONE && (this.extra.thrLeft > 0 || this.sandbox) ? tdef.name : '';
+    m.thrCount = this.extra.thrLeft;
+    m.thrCd = this.extra.thrCd;
+    // flash: solid white for most of it, then a fade; the ears ring for as long
+    const fl = this.extra.flash;
+    m.flash = s.alive ? Math.min(1, fl / 1.6) : 0;
+    this.host.audio.setDeaf(s.alive ? Math.min(1, fl / 2) : 0);
+    if (fl > 0.4 && this.lastFlash <= 0.4) this.host.audio.ui('ring', 0.6);
+    this.lastFlash = fl;
     m.reinf = this.extra.reinf;
     m.showReinf = this.role !== 'attack' && (this.extra.reinf > 0 || this.sandbox);
     m.role = this.role;

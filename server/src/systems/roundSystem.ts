@@ -2,13 +2,14 @@
 
 import {
   BombState, GameMode, PhaseId, operatorDef, OPERATORS, defaultOperator, resetLoadout, PLAYER, FLOOR_H,
-  spreadPick, openFacing,
+  ThrowKind, defaultThrowable, throwDef, spreadPick, openFacing,
   type SpawnPoint, type Spot,
 } from '@holdfast/shared';
 import { Player } from '../Player';
 import type { Room } from '../Room';
 import { clearEntities, deployDronesForPrep } from './gadgetSystem';
 import { resetBomb, updateBomb } from './bombSystem';
+import { stockThrowable } from './throwSystem';
 
 const MATCH_END_MS = 15000;
 
@@ -77,6 +78,7 @@ function startRound(room: Room): void {
     p.op = defaultOperator(sideOf(room, p));
     p.primary = (operatorDef(p.op).primaries[0] as number);
     p.secondary = (operatorDef(p.op).secondaries[0] as number);
+    p.throwPick = defaultThrowable(sideOf(room, p));
     p.picked = false;
     p.state.alive = false;
     p.state.hp = 0;
@@ -100,6 +102,7 @@ function startPrep(room: Room): void {
       p.op = defaultOperator(sideOf(room, p));
       p.primary = (operatorDef(p.op).primaries[0] as number);
       p.secondary = (operatorDef(p.op).secondaries[0] as number);
+      p.throwPick = defaultThrowable(sideOf(room, p));
     }
     if (def.unique) taken.add(key);
   }
@@ -162,7 +165,7 @@ function toLobby(room: Room): void {
 // ---------------------------------------------------------------------------
 
 /** Validate and apply an operator pick. Returns an error message or null. */
-export function applyPick(room: Room, p: Player, op: number, primary: number, force: boolean, secondary?: number): string | null {
+export function applyPick(room: Room, p: Player, op: number, primary: number, force: boolean, secondary?: number, throwable?: number): string | null {
   if (op < 0 || op >= OPERATORS.length) return 'Unknown operator';
   const def = operatorDef(op);
   if (!force) {
@@ -176,6 +179,8 @@ export function applyPick(room: Room, p: Player, op: number, primary: number, fo
   p.op = op;
   p.primary = def.primaries.includes(primary as 0) ? primary : (def.primaries[0] as number);
   p.secondary = secondary !== undefined && def.secondaries.includes(secondary as 0) ? secondary : (def.secondaries[0] as number);
+  const side = def.side;
+  p.throwPick = throwable !== undefined && throwDef(throwable).id !== ThrowKind.NONE && throwDef(throwable).side === side ? throwable : defaultThrowable(side);
   p.picked = true;
   room.markRoomDirty();
   return null;
@@ -213,6 +218,7 @@ function setupState(room: Room, p: Player, spawn: SpawnPoint | { x: number; y: n
   p.primary = def.primaries.includes(p.primary as 0) ? p.primary : (def.primaries[0] as number);
   p.secondary = def.secondaries.includes(p.secondary as 0) ? p.secondary : (def.secondaries[0] as number);
   resetLoadout(s, p.primary, p.secondary);
+  stockThrowable(p, def.side);
 
   const defender = room.canDefenderStuff(p);
   p.reinf = defender ? (room.sandbox ? 3 : 2) + def.reinforceCharges : 0;

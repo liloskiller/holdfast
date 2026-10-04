@@ -44,7 +44,7 @@ export function spawnEntity(room: Room, init: EntityInit): Entity {
     id, kind: init.kind, team: init.owner.team, owner: init.owner.id,
     x: init.x, y: init.y, z: init.z, a: init.a ?? 0, b: init.b ?? 0,
     hp: init.hp, maxHp: init.hp, box: init.box,
-    nx: init.nx ?? 0, ny: init.ny ?? 1, nz: init.nz ?? 0,
+    nx: init.nx ?? 0, ny: init.ny ?? 1, nz: init.nz ?? 0, vx: 0, vy: 0, vz: 0,
     born: room.time, dynId: -1, armed: true, lastCheck: 0,
   };
   if (init.shield) {
@@ -58,6 +58,7 @@ export function spawnEntity(room: Room, init: EntityInit): Entity {
 export function removeEntity(room: Room, e: Entity): void {
   room.entities.delete(e.id);
   if (e.dynId >= 0) room.world.removeDyn(e.dynId);
+  if (e.kind === EntityKind.SMOKE) room.world.smokes = room.world.smokes.filter((sm) => sm.id !== e.id);
   const owner = room.players.get(e.owner);
   if (owner) {
     owner.charges = owner.charges.filter((c) => c !== e.id);

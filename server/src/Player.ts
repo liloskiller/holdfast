@@ -82,6 +82,13 @@ export class Player {
   spec = 0;
   stepDist = 0;
   respawnAt = 0;
+  /** Secondary gadget: what was picked, what is in the pouch now, and the throw cooldown (s). */
+  throwPick = 0;
+  throwKind = 0;
+  throwLeft = 0;
+  throwCd = 0;
+  /** Flash blindness lasts until this server time (ms). */
+  blindUntil = 0;
   jammed = false;
   lastDamageFrom = 0;
   prompt = 0;
@@ -182,6 +189,10 @@ export interface Entity {
   nx: number;
   ny: number;
   nz: number;
+  /** Velocity of things in flight. */
+  vx: number;
+  vy: number;
+  vz: number;
   born: number;
   dynId: number;
   armed: boolean;

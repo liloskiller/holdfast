@@ -10,6 +10,7 @@ export * from './lean';
 export * from './nav';
 export * from './spawns';
 export * from './operators';
+export * from './throwables';
 export * from './protocol';
 export * from './mapCheck';
 export * from './testMap';

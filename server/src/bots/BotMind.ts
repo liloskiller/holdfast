@@ -95,6 +95,9 @@ export class BotMind {
   errUntil = 0;
   lastShots = 0;
   triggerHeld = false;
+  /** Grenades: earliest time for the next throw, and a throw that is being lined up (until this time). */
+  nadeAt = 0;
+  throwUntil = 0;
   crouchUntil = 0;
   standUntil = 0;
 

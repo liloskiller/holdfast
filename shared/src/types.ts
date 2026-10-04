@@ -24,6 +24,7 @@ export const Btn = {
   CAMERA: 1 << 12,
   LEAN_L: 1 << 13,
   LEAN_R: 1 << 14,
+  THROW: 1 << 15,
 } as const;
 
 export interface InputCmd {
@@ -219,6 +220,7 @@ export interface RoomPlayerInfo {
   op: number;
   primary: number;
   secondary: number;
+  throwable: number;
   host: boolean;
   connected: boolean;
   kills: number;
@@ -306,6 +308,12 @@ export const EntityKind = {
   JAMMER: 4,
   CAMERA: 5,
   BOMB: 6,
+  /** A thrown grenade in flight (a = ThrowKind). */
+  GRENADE: 7,
+  /** A smoke cloud (a = its radius now). */
+  SMOKE: 8,
+  WIRE: 9,
+  ALARM: 10,
 } as const;
 export type EntityKind = (typeof EntityKind)[keyof typeof EntityKind];
 
@@ -326,7 +334,7 @@ export interface EntitySnap {
 
 export type SoundKind =
   | 'shot' | 'step' | 'door' | 'glass' | 'wall' | 'breach' | 'barricade' | 'reinforce'
-  | 'reload' | 'melee' | 'drone' | 'boom' | 'vault' | 'gadget' | 'metal' | 'trap' | 'ping' | 'beep';
+  | 'reload' | 'melee' | 'drone' | 'boom' | 'vault' | 'gadget' | 'metal' | 'trap' | 'ping' | 'beep' | 'flash';
 
 export type GameEvent =
   | { k: 'shot'; id: number; w: number; ox: number; oy: number; oz: number; ends: number[] }
@@ -359,6 +367,10 @@ export interface SelfExtra {
   charges: number; // armed breach charges
   cap: number; // objective capture progress 0..1
   jam: number; // 1 when jammed (static on the drone feed)
+  thr: number; // ThrowKind of the secondary gadget
+  thrLeft: number; // how many are left
+  thrCd: number; // seconds until the next throw
+  flash: number; // seconds of flash blindness left, 0 when not blinded
 }
 
 export interface Snapshot {
@@ -382,7 +394,7 @@ export type ClientMsg =
   | { t: 'JOIN_ROOM'; code: string; name: string; token?: string }
   | { t: 'SET_TEAM'; team: 0 | 1 }
   | { t: 'SET_READY'; ready: boolean }
-  | { t: 'PICK_OPERATOR'; op: number; primary: WeaponId; secondary?: WeaponId }
+  | { t: 'PICK_OPERATOR'; op: number; primary: WeaponId; secondary?: WeaponId; throwable?: number }
   | { t: 'SET_SETTINGS'; settings: Partial<RoomSettings> }
   | { t: 'START_MATCH' }
   | { t: 'INPUT'; cmds: InputCmd[] }

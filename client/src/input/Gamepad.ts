@@ -135,6 +135,7 @@ export class GamepadControls {
     this.hold(Btn.GADGET, !!cur[12]);
     if (edge(13)) inp.tap(Btn.DRONE);
     if (edge(14)) inp.tap(Btn.CAMERA);
+    if (edge(15)) inp.tap(Btn.THROW);
     if (edge(8)) this.hooks.onScoreboard(true);
     else if (!cur[8] && this.prev[8]) this.hooks.onScoreboard(false);
 

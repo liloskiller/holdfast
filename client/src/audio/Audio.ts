@@ -247,6 +247,19 @@ const GENERATORS: Record<string, Gen> = {
     return mix(n, [[mul(osc(n, sr, () => 1480), expEnv(n, sr, 200)), 0.5], [mul(osc(n, sr, () => 740), expEnv(n, sr, 260)), 0.3]]);
   },
   boom: (sr) => GENERATORS['breach']!(sr),
+  // flashbang: a hard crack and a thin ringing that hangs on
+  flash: (sr) => {
+    const n = Math.floor(sr * 1.4);
+    return mix(n, [
+      [mul(highpass(noise(n), 1500, sr), expEnv(n, sr, 60)), 1.0],
+      [mul(osc(n, sr, () => 90), expEnv(n, sr, 160)), 0.8],
+      [mul(osc(n, sr, () => 3300), expEnv(n, sr, 600)), 0.12],
+    ]);
+  },
+  ring: (sr) => {
+    const n = Math.floor(sr * 3.2);
+    return mix(n, [[mul(osc(n, sr, () => 4100), expEnv(n, sr, 1400, 40)), 0.22], [mul(osc(n, sr, () => 2750), expEnv(n, sr, 1100, 40)), 0.1]]);
+  },
   ui: (sr) => tone(sr, 50, 900, 18, 0.4),
   uiback: (sr) => tone(sr, 60, 520, 24, 0.4),
   beep: (sr) => tone(sr, 110, 880, 70, 0.5),
@@ -456,6 +469,12 @@ export class GameAudio {
     h.osc.frequency.setTargetAtTime(90 + level * 90, t, 0.06);
     h.osc2.frequency.setTargetAtTime(270 + level * 270, t, 0.06);
     h.gain.gain.setTargetAtTime(0.012 + level * 0.03, t, 0.06);
+  }
+
+  /** Flash deafness: 0 hears everything, 1 hears almost nothing. */
+  setDeaf(level: number): void {
+    if (!this.ctx) return;
+    this.master.gain.setTargetAtTime(settings.master * (1 - 0.85 * Math.max(0, Math.min(1, level))), this.ctx.currentTime, 0.05);
   }
 
   setHeart(on: boolean): void {

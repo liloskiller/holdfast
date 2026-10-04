@@ -9,13 +9,13 @@ import type { RoomSettings } from './constants';
 
 const EXTRA_KEYS: readonly (keyof SelfExtra)[] = [
   'reinf', 'gadget', 'gadgetCd', 'act', 'actP', 'droneCd', 'tagCd', 'spec', 'op', 'camIdx', 'camCount',
-  'sensorT', 'prompt', 'charges', 'cap', 'jam',
+  'sensorT', 'prompt', 'charges', 'cap', 'jam', 'thr', 'thrLeft', 'thrCd', 'flash',
 ];
 
 export function makeExtra(): SelfExtra {
   return {
     reinf: 0, gadget: 0, gadgetCd: 0, act: 0, actP: 0, droneCd: 0, tagCd: 0, spec: 0, op: 0,
-    camIdx: -1, camCount: 0, sensorT: 0, prompt: 0, charges: 0, cap: 0, jam: 0,
+    camIdx: -1, camCount: 0, sensorT: 0, prompt: 0, charges: 0, cap: 0, jam: 0, thr: 0, thrLeft: 0, thrCd: 0, flash: 0,
   };
 }
 
@@ -148,7 +148,7 @@ function decodeCmd(a: unknown): InputCmd | null {
     moveZ: Math.max(-1, Math.min(1, (n[2] as number) / 100)),
     yaw: (n[3] as number) / 10000,
     pitch: Math.max(-1.5, Math.min(1.5, (n[4] as number) / 10000)),
-    buttons: (n[5] as number) & 0x7fff,
+    buttons: (n[5] as number) & 0xffff,
     clientTime: n[6] as number,
     slot: n[7] ? 1 : 0,
   };
@@ -258,6 +258,8 @@ export function decodeClient(raw: string): ClientMsg | null {
       const m: ClientMsg = { t: 'PICK_OPERATOR', op: Math.round(op), primary: Math.round(primary) as 0 };
       const secondary = num(r['secondary'], 0, 39);
       if (secondary !== null) m.secondary = Math.round(secondary) as 0;
+      const throwable = num(r['throwable'], 0, 9);
+      if (throwable !== null) m.throwable = Math.round(throwable);
       return m;
     }
     case 'SET_SETTINGS': {

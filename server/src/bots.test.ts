@@ -40,6 +40,31 @@ describe('bots', () => {
     expect(kills).toBeGreaterThan(0);
   });
 
+  it('bots lob grenades at enemies they see and a flashed bot is blind', () => {
+    const room = makeRoom();
+    const a1 = addBot(room, 0, 2)!;
+    const b1 = addBot(room, 1, 2)!;
+    forceAction(room);
+    let used = 0;
+    // a few duels: every one gives each bot a chance to answer with a grenade
+    for (let round = 0; round < 10 && used === 0; round++) {
+      place(a1, 3, 0, 8, -Math.PI / 2);
+      place(b1, 17, 0, 8, Math.PI / 2);
+      a1.throwKind = 1; a1.throwLeft = 6; a1.bot!.nadeAt = 0; // frag
+      b1.throwKind = 4; b1.throwLeft = 6; b1.bot!.nadeAt = 0; // impact
+      for (let i = 0; i < 60 * 6 && a1.state.alive && b1.state.alive; i++) room.advance(1000 / 60);
+      used += 12 - a1.throwLeft - b1.throwLeft;
+    }
+    expect(used).toBeGreaterThan(0);
+
+    // a blind bot sees nobody
+    place(a1, 5, 0, 18, -Math.PI / 2);
+    place(b1, 12, 0, 18, Math.PI / 2);
+    a1.blindUntil = room.time + 3000;
+    room.advance(1000);
+    expect(a1.bot!.target).toBeNull();
+  });
+
   it('bots obey the normal rules: they cannot hurt teammates, and dead bots stay quiet', () => {
     const room = makeRoom();
     const a1 = addBot(room, 0, 2)!;
@@ -65,7 +90,7 @@ describe('bots', () => {
 
   it('a bots only match runs through all its phases to a winner (several seeds, easy to hard)', () => {
     const reasons = new Set<string>();
-    for (const [seed, diff] of [[3, 1], [11, 0], [5, 2], [21, 1]] as const) {
+    for (const [seed, diff] of [[3, 1], [11, 0], [5, 2], [21, 1], [4, 1], [13, 1]] as const) {
       const room = botMatchRoom(seed, 3, diff);
       expect(startMatch(room)).toBeNull();
       const seen = new Set<number>();

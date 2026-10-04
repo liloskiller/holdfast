@@ -27,6 +27,7 @@ const DEFS: BtnDef[] = [
   { id: 'gadget', label: 'GADGET', btn: Btn.GADGET, mode: 'tap', cls: 't-gadget', ctx: 'body' },
   { id: 'switch', label: 'SWAP', btn: 0, mode: 'tap', cls: 't-switch', ctx: 'body' },
   { id: 'drone', label: 'DRONE', btn: Btn.DRONE, mode: 'tap', cls: 't-drone' },
+  { id: 'nade', label: 'NADE', btn: Btn.THROW, mode: 'tap', cls: 't-nade', ctx: 'body' },
   { id: 'cam', label: 'CAM', btn: Btn.CAMERA, mode: 'tap', cls: 't-cam', ctx: 'body' },
   { id: 'leanl', label: 'LEAN', btn: Btn.LEAN_L, mode: 'toggle', cls: 't-leanl', ctx: 'body' },
   { id: 'leanr', label: 'LEAN', btn: Btn.LEAN_R, mode: 'toggle', cls: 't-leanr', ctx: 'body' },

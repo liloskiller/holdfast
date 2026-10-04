@@ -114,9 +114,9 @@ export class App {
       onSettings: (partial: Partial<RoomSettings>) => this.send({ t: 'SET_SETTINGS', settings: partial }),
     });
     this.opsel = new OperatorSelect(this.uiRoot, {
-      onPick: (op, primary, secondary) => {
+      onPick: (op, primary, secondary, throwable) => {
         this.audio.ui('ui');
-        this.send({ t: 'PICK_OPERATOR', op, primary: primary as 0, secondary: secondary as 0 });
+        this.send({ t: 'PICK_OPERATOR', op, primary: primary as 0, secondary: secondary as 0, throwable });
       },
     });
     this.scoreboard = new Scoreboard(this.uiRoot);
@@ -131,7 +131,7 @@ export class App {
       onHelp: () => this.openHelp(),
       onLeave: () => this.leave(),
       onDebug: (cmd) => this.send({ t: 'DEBUG', cmd }),
-      onPick: (op, primary, secondary) => this.send({ t: 'PICK_OPERATOR', op, primary: primary as 0, secondary: secondary as 0 }),
+      onPick: (op, primary, secondary, throwable) => this.send({ t: 'PICK_OPERATOR', op, primary: primary as 0, secondary: secondary as 0, throwable }),
     });
     this.status = new StatusOverlay(this.uiRoot);
     this.ctp = new ClickToPlay(this.uiRoot, () => this.resume());

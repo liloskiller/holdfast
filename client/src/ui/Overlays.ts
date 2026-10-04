@@ -1,6 +1,6 @@
 // Small modal overlays: pause menu, help, reconnecting and click to play.
 
-import { OPERATORS, weaponDef } from '@holdfast/shared';
+import { OPERATORS, defaultThrowable, throwablesForSide, weaponDef } from '@holdfast/shared';
 import { btn, clear, el } from './dom';
 
 export interface PauseHooks {
@@ -9,7 +9,7 @@ export interface PauseHooks {
   onHelp(): void;
   onLeave(): void;
   onDebug(cmd: string): void;
-  onPick(op: number, primary: number, secondary: number): void;
+  onPick(op: number, primary: number, secondary: number, throwable: number): void;
 }
 
 export class PauseMenu {
@@ -49,17 +49,32 @@ export class PauseMenu {
         o.value = String(w);
       }
     };
+    const tSel = el('select', 'input', undefined, opRow);
+    const fillThrowables = (): void => {
+      clear(tSel);
+      const def = OPERATORS[Number(opSel.value)];
+      for (const t of throwablesForSide(def ? def.side : 'attack')) {
+        const o = el('option', '', t.name, tSel);
+        o.value = String(t.id);
+      }
+    };
     fillWeapons();
     fillSecondary();
+    fillThrowables();
     const send = (): void => {
       const od = OPERATORS[Number(opSel.value)];
-      hooks.onPick(Number(opSel.value), Number(wSel.value), od ? Number(sSel.value || od.secondaries[0]) : 4);
+      hooks.onPick(
+        Number(opSel.value), Number(wSel.value), od ? Number(sSel.value || od.secondaries[0]) : 4,
+        Number(tSel.value || defaultThrowable(od ? od.side : 'attack')),
+      );
     };
     opSel.addEventListener('change', () => {
       fillWeapons();
       fillSecondary();
+      fillThrowables();
       send();
     });
+    tSel.addEventListener('change', send);
     wSel.addEventListener('change', send);
     sSel.addEventListener('change', send);
     const row = el('div', 'menu-row', undefined, this.practice);
@@ -101,20 +116,21 @@ export class HelpScreen {
       'WASD move   SHIFT sprint   C crouch   Q / E lean left / right (peek around corners)   mouse wheel or 1 / 2 swap weapon',
       'Mouse aim   LEFT fire   RIGHT aim   R reload   V kick / melee',
       'F tap: open or close door, vault a broken window.   F hold: reinforce a marked wall (defenders, prep only) or barricade a door/window.',
-      'G use gadget   X launch or enter drone   Z cycle security cameras   TAB scoreboard   ESC pause',
+      'G use gadget   T throw your grenade or set your trap   X launch or enter drone   Z cycle security cameras   TAB scoreboard   ESC pause',
       'Drone: a small RC car. WASD drive, mouse looks, SPACE hops (about knee high: over low furniture, up stairs), FIRE tags an enemy so your team sees them through walls. It can be shot, and a hard fall damages it.',
       'Practice only: B blast a hole where you look   N reinforce the panel you look at   M reset world   K refill',
     ]);
     sec('GAMEPAD', [
-      'Sticks move and look, RT fire, LT aim, A use, B crouch, X reload, Y swap, LB / RB lean, R3 kick, D-pad up gadget, down drone, left cameras, Back scoreboard, Start pause.',
+      'Sticks move and look, RT fire, LT aim, A use, B crouch, X reload, Y swap, LB / RB lean, R3 kick, D-pad up gadget, down drone, left cameras, right grenade, Back scoreboard, Start pause.',
     ]);
     sec('TOUCH', [
       'Left thumb: move (push the stick to the rim to sprint). Right thumb: drag to look. FIRE is the big button, dragging it also aims.',
-      'AIM toggles sights, USE does door / reinforce / barricade (hold), KICK breaks barricades, GADGET uses your operator gadget.',
+      'AIM toggles sights, USE does door / reinforce / barricade (hold), KICK breaks barricades, GADGET uses your operator gadget, NADE throws your grenade or sets your trap.',
       'Add this page to your Home Screen for fullscreen play on iPhone.',
     ]);
     sec('TIPS', [
       'Plaster and wood walls can be shot out. Bullets pass through them at half damage. Reinforced (metal) walls only break to a hard breach charge.',
+      'Pick a secondary gadget in operator select: frag, flashbang or smoke for attackers, impact grenade, barbed wire or proximity alarm for defenders. Flashes hurt less when you look away, smoke blocks sight, impact grenades open barricades and soft walls.',
       'Hatches in the floor are soft: shoot or breach them to drop in. Listen for footsteps, loud sprinting shows up on your compass.',
     ]);
     btn('CLOSE', 'btn primary', onClose, card);

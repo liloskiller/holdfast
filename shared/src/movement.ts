@@ -28,6 +28,8 @@ export interface StepOut {
   /** True for one step when the INTERACT button was released after a tap. */
   meleePressed: boolean;
   gadgetPressed: boolean;
+  /** The secondary gadget button (grenade or trap) was pressed. */
+  throwPressed: boolean;
   firePressed: boolean;
   cameraPressed: boolean;
   /** The drone hopped this step (for sound). */
@@ -41,7 +43,7 @@ export interface StepOut {
 export function makeStepOut(): StepOut {
   return {
     fired: false, shotIdx: 0, weapon: 0, aimYaw: 0, aimPitch: 0, spread: 0, reloadStarted: false, switched: false, vaultStarted: false,
-    tapUse: false, droneToggled: false, dronePressed: false, meleePressed: false, gadgetPressed: false, firePressed: false,
+    tapUse: false, droneToggled: false, dronePressed: false, meleePressed: false, gadgetPressed: false, throwPressed: false, firePressed: false,
     cameraPressed: false, droneHop: false, droneLand: 0, landSpeed: 0,
   };
 }
@@ -270,6 +272,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
   out.dronePressed = false;
   out.meleePressed = false;
   out.gadgetPressed = false;
+  out.throwPressed = false;
   out.firePressed = false;
   out.cameraPressed = false;
   out.droneHop = false;
@@ -299,6 +302,7 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
 
   out.meleePressed = (pressed & Btn.MELEE) !== 0;
   out.gadgetPressed = (pressed & Btn.GADGET) !== 0;
+  out.throwPressed = (pressed & Btn.THROW) !== 0;
   out.firePressed = (pressed & Btn.FIRE) !== 0;
   out.cameraPressed = (pressed & Btn.CAMERA) !== 0;
 

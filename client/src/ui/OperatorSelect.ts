@@ -1,10 +1,10 @@
 // Operator pick screen shown during the OPERATOR_SELECT phase.
 
-import { OPERATORS, weaponDef, type OperatorDef, type RoomState, type WeaponDef } from '@holdfast/shared';
+import { OPERATORS, defaultThrowable, throwDef, throwablesForSide, weaponDef, type OperatorDef, type RoomState, type WeaponDef } from '@holdfast/shared';
 import { btn, clear, el } from './dom';
 
 export interface OperatorHooks {
-  onPick(op: number, primary: number, secondary: number): void;
+  onPick(op: number, primary: number, secondary: number, throwable: number): void;
 }
 
 export class OperatorSelect {
@@ -16,6 +16,7 @@ export class OperatorSelect {
   private selected = -1;
   private primary = -1;
   private secondary = -1;
+  private throwable = -1;
   private side: 'attack' | 'defend' = 'attack';
   private lastKey = '';
 
@@ -44,6 +45,7 @@ export class OperatorSelect {
     this.selected = -1;
     this.primary = -1;
     this.secondary = -1;
+    this.throwable = -1;
     this.lastKey = '';
     this.title.textContent = side === 'attack' ? 'SELECT ATTACKER' : 'SELECT DEFENDER';
     this.title.className = 'ops-title ' + side;
@@ -58,7 +60,7 @@ export class OperatorSelect {
       const def = OPERATORS[m.op];
       if (def && def.unique && def.side === this.side) takenBy.set(m.op, m.name);
     }
-    const key = [...takenBy.entries()].join('|') + '#' + this.selected + '#' + this.primary + '#' + this.secondary;
+    const key = [...takenBy.entries()].join('|') + '#' + this.selected + '#' + this.primary + '#' + this.secondary + '#' + this.throwable;
     if (key === this.lastKey) return;
     this.lastKey = key;
 
@@ -75,8 +77,9 @@ export class OperatorSelect {
         this.selected = op.id;
         this.primary = op.primaries[0];
         this.secondary = op.secondaries[0];
+        if (this.throwable < 0) this.throwable = defaultThrowable(this.side);
         this.lastKey = '';
-        this.hooks.onPick(op.id, this.primary, this.secondary);
+        this.hooks.onPick(op.id, this.primary, this.secondary, this.throwable);
         this.update(room, myId);
       });
     }
@@ -94,7 +97,7 @@ export class OperatorSelect {
     el('div', 'ops-d-text', def.gadgetDesc, this.detail);
     const pick = (): void => {
       this.lastKey = '';
-      this.hooks.onPick(def.id, this.primary, this.secondary);
+      this.hooks.onPick(def.id, this.primary, this.secondary, this.throwable);
       this.update(room, myId);
     };
     const weaponRow = (label: string, list: readonly number[], current: number, set: (w: number) => void): void => {
@@ -110,6 +113,15 @@ export class OperatorSelect {
     };
     weaponRow('PRIMARY', def.primaries, this.primary, (w) => { this.primary = w; });
     weaponRow('SIDEARM', def.secondaries, this.secondary, (w) => { this.secondary = w; });
+    el('div', 'ops-d-label', 'SECONDARY GADGET', this.detail);
+    const trow = el('div', 'ops-weapons', undefined, this.detail);
+    for (const t of throwablesForSide(this.side)) {
+      btn(`${t.name}  x${t.count}`, 'btn small' + (t.id === this.throwable ? ' primary' : ''), () => {
+        this.throwable = t.id;
+        pick();
+      }, trow);
+    }
+    el('div', 'ops-d-text dim', throwDef(this.throwable).desc, this.detail);
     const bars = el('div', 'ops-stats', undefined, this.detail);
     this.statBlock(bars, weaponDef(this.primary));
     this.statBlock(bars, weaponDef(this.secondary));

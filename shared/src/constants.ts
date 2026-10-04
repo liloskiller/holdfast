@@ -163,6 +163,8 @@ export const KillCause = {
   TRAP: 42,
   FALL: 43,
   BOMB: 44,
+  GRENADE: 45,
+  WIRE: 46,
 } as const;
 
 export type FireMode = 'auto' | 'semi' | 'burst';

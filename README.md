@@ -65,12 +65,13 @@ Notes:
 | Crouch | C (toggle), Ctrl (hold) | CROUCH |
 | Use (door, vault, hold to reinforce or barricade) | F | USE |
 | Gadget | G | GADGET |
+| Grenade / trap (secondary gadget) | T | NADE |
 | Drone / camera | X / Z | DRONE / CAM |
 | Drone hop | Space | HOP |
 | Scoreboard / pause | Tab / Esc | SCORE / II |
 | Practice tools | B blast, N reinforce, M reset, K refill | Pause menu |
 
-**Gamepad** (standard mapping, Xbox / PlayStation / most Bluetooth pads, used in matches and Practice; menus still need the mouse or touch): left stick move, L3 sprint, right stick look, RT fire, LT aim, A use (hops the drone), B crouch, X reload, Y swap weapon, LB / RB lean, R3 kick, D-pad up gadget, down drone, left cameras, Back scoreboard, Start pause. **Recoil assist** (settings, on by default for touch) makes the gun kick 40 percent weaker.
+**Gamepad** (standard mapping, Xbox / PlayStation / most Bluetooth pads, used in matches and Practice; menus still need the mouse or touch): left stick move, L3 sprint, right stick look, RT fire, LT aim, A use (hops the drone), B crouch, X reload, Y swap weapon, LB / RB lean, R3 kick, D-pad up gadget, down drone, left cameras, right grenade, Back scoreboard, Start pause. **Recoil assist** (settings, on by default for touch) makes the gun kick 40 percent weaker.
 
 Tap F near a **broken window** to vault through it. **Hold F** facing a marked wall panel to reinforce it (defenders, prep only) or facing a door or window to barricade it. Drone: a small RC car that drives on the floor (WASD, mouse to look), rolls over tiny lips and **hops** (Space) about knee high to get over low furniture and up stairs. It cannot fly, cannot pass one metre furniture, and a hard fall damages it. FIRE tags the enemy in your crosshair so your team sees them through walls for 8 seconds.
 
@@ -80,7 +81,7 @@ Tap F near a **broken window** to vault through it. **Hold F** facing a marked w
 
 The menu's **SOLO MATCH vs BOTS** starts a full match in your browser: pick your side (attack or defend), team size (2 to 5 per team, you included) and bot difficulty (easy, normal, hard). It uses the same rules, map and round flow as an online match (operator pick, prep, action, first to 3 rounds, sides swap every 2).
 
-Bots are ordinary players whose inputs are generated on the server side of the game (in your page for solo play), so they move, shoot, recoil, reload and take damage by exactly the same code as you. They have no special senses: they see what is in their field of view with a clear line, and hear footsteps, gunfire and breaches within range. Attackers path to the objective (through doors and up the stairs), kick down barricades and fight what they meet; defenders reinforce walls and barricade doors in prep, then hold positions near the objective, turn to noises and contest the objective when it is being taken. They do not use gadgets or drones yet.
+Bots are ordinary players whose inputs are generated on the server side of the game (in your page for solo play), so they move, shoot, recoil, reload and take damage by exactly the same code as you. They have no special senses: they see what is in their field of view with a clear line, and hear footsteps, gunfire and breaches within range. Attackers path to the objective (through doors and up the stairs), kick down barricades and fight what they meet; defenders reinforce walls and barricade doors in prep, then hold positions near the objective, turn to noises and contest the objective when it is being taken. They throw frag, flash and impact grenades at enemies they see and plant or defuse the bomb. They do not use operator gadgets, traps or drones yet.
 
 ## How a match works
 

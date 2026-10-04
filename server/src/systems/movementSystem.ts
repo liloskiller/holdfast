@@ -5,6 +5,7 @@ import type { Room } from '../Room';
 import type { Player } from '../Player';
 import { applyDamage, melee, shoot } from './combatSystem';
 import { processInteract } from './destructionSystem';
+import { useThrowable } from './throwSystem';
 import { cycleCamera, destroyDrone, droneButton, droneTag, useGadget } from './gadgetSystem';
 import { spawnRoundPlayer } from './roundSystem';
 
@@ -57,6 +58,7 @@ function applyCmd(room: Room, p: Player, cmd: InputCmd): void {
 
   if (out.meleePressed && !s.dCtl && !s.cam && s.vault <= 0) melee(room, p);
   if (out.gadgetPressed && !s.dCtl && !s.cam && s.vault <= 0) useGadget(room, p);
+  if (out.throwPressed) useThrowable(room, p);
   if (out.cameraPressed && !s.dCtl) cycleCamera(room, p);
   if (out.dronePressed) droneButton(room, p, out.droneToggled);
   if (s.dCtl && out.firePressed) droneTag(room, p);

@@ -179,6 +179,7 @@ export class World {
     this.hatches = [];
     this.openings = [];
     this.dyn.clear();
+    this.smokes = [];
     this.dirtyCells.clear();
     this.dirtyOpenings.clear();
 
@@ -780,6 +781,9 @@ export class World {
     return true;
   }
 
+  /** Smoke clouds (spheres). They block line of sight, not bullets. Written by the server, the clients only draw them. */
+  smokes: { id: number; x: number; y: number; z: number; r: number }[] = [];
+
   private losHit: RayHit = makeRayHit();
 
   /** Line of sight between two points (glass is transparent, doors and shields block). */
@@ -790,6 +794,14 @@ export class World {
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (len < 1e-6) return true;
     const inv = 1 / len;
+    for (const sm of this.smokes) {
+      // closest point of the segment to the cloud centre
+      const t = Math.max(0, Math.min(1, ((sm.x - ax) * dx + (sm.y - ay) * dy + (sm.z - az) * dz) / (len * len)));
+      const px = ax + dx * t - sm.x;
+      const py = ay + dy * t - sm.y;
+      const pz = az + dz * t - sm.z;
+      if (px * px + py * py + pz * pz < sm.r * sm.r * 0.8) return false;
+    }
     return !this.raycast(ax, ay, az, dx * inv, dy * inv, dz * inv, len - 0.01, this.losHit, { seeThroughGlass: true });
   }
 

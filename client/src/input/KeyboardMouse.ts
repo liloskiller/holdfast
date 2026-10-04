@@ -111,6 +111,7 @@ export class KeyboardMouse {
       case 'KeyF': inp.setHeld(Btn.INTERACT, down); break;
       case 'KeyR': inp.setHeld(Btn.RELOAD, down); break;
       case 'KeyG': inp.setHeld(Btn.GADGET, down); break;
+      case 'KeyT': inp.setHeld(Btn.THROW, down); break;
       case 'KeyQ': inp.setHeld(Btn.LEAN_L, down); break;
       case 'KeyE': inp.setHeld(Btn.LEAN_R, down); break;
       case 'KeyV': inp.setHeld(Btn.MELEE, down); break;

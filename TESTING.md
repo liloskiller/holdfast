@@ -38,6 +38,14 @@ Targets: desktop Chrome, Android Chrome, iPhone Safari in the browser, iPhone Sa
 - [ ] Every attacker dead before the plant: defenders win. Time runs out before the plant: defenders win
 - [ ] Bots plant when nobody is shooting at them and rush to disable it after the plant
 
+### Secondary gadgets
+- [ ] Operator select shows SECONDARY GADGET chips (attack: frag, flashbang, smoke; defend: impact, barbed wire, alarm), the HUD shows its name and count
+- [ ] T (NADE on phones) throws: arc, bounces on floors and walls, frag goes off after about 2.5 s and hurts you too if you stay close, a wall between you and the blast protects you
+- [ ] Flashbang: white screen and muffled ringing, shorter when you look away; enemy bots lose sight of you while flashed
+- [ ] Smoke: a grey cloud grows to about 3 m, blocks sight (yours and bots') for 14 s, bullets still pass
+- [ ] Impact grenade explodes on first contact: tears a hole in plaster, breaks barricade planks and doors, hurts people nearby
+- [ ] Barbed wire: slows and nicks only the other team. Proximity alarm: the first attacker near it is marked for the defenders for 3 s, then it is used up
+
 ### Combat
 - [ ] Recoil: hold fire with the Carbine, the view climbs, pulling the mouse down keeps shots on target, releasing settles it. Crosshair widens during a spray and closes when you stop.
 - [ ] ADS speed: SMG snaps up, Marksman and Anvil take noticeably longer. Reload cancels aiming.

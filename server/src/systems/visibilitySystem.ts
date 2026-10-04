@@ -116,8 +116,9 @@ export function buildSnapshot(room: Room, viewer: Player, diff: WorldDiff | null
   // ---- entities ----
   const entities: EntitySnap[] = [];
   for (const e of room.entities.values()) {
-    let include = e.team === team;
-    if (!include && e.kind !== EntityKind.TRAP) {
+    // a smoke cloud blocks the very sight line that would show it, so everybody gets to see it
+    let include = e.team === team || e.kind === EntityKind.SMOKE;
+    if (!include && e.kind !== EntityKind.TRAP && e.kind !== EntityKind.ALARM) {
       const key = 1e6 + e.id;
       if (all || room.world.lineOfSight(eye.x, eye.y, eye.z, e.x, e.y + 0.1, e.z)) {
         viewer.seen.set(key, now);
@@ -212,6 +213,10 @@ export function buildSnapshot(room: Room, viewer: Player, diff: WorldDiff | null
   extra.camCount = viewer.cameras.length;
   extra.jam = viewer.jammed ? 1 : 0;
   extra.cap = room.capture;
+  extra.thr = viewer.throwKind;
+  extra.thrLeft = viewer.throwLeft;
+  extra.thrCd = viewer.throwCd;
+  extra.flash = Math.max(0, (viewer.blindUntil - room.time) / 1000);
   if (viewer.actKind) {
     extra.act = viewer.actKind;
     const need = viewer.actKind === 1 ? (viewer.op === 4 ? 1.5 : 2.0) : 1.2;

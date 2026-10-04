@@ -3,7 +3,7 @@
 // special senses: it sees what has line of sight inside its field of view and hears sounds that reach it.
 
 import {
-  BombState, Btn, FLOOR_H, GameMode, NavGrid, OperatorId, PhaseId, SIEGE, SIM_DT, TILE, clamp, eyeHeight, makeCmd, operatorDef,
+  BombState, Btn, FLOOR_H, GameMode, NavGrid, OperatorId, THROW, ThrowKind, PhaseId, SIEGE, SIM_DT, TILE, clamp, eyeHeight, makeCmd, operatorDef,
   quantizeCmd, wrapAngle, weaponDef, type InputCmd, type NavPath,
 } from '@holdfast/shared';
 import type { Player } from '../Player';
@@ -91,7 +91,9 @@ function handlePicking(room: Room, p: Player, m: BotMind): void {
     const def = operatorDef(op);
     const primary = m.rng.pick(def.primaries);
     const secondary = m.rng.pick(def.secondaries);
-    if (applyPick(room, p, op, primary, false, secondary) === null) {
+    // bots only know how to throw: frag or flash for the attack, the impact grenade for the defence
+    const throwable = sideOf(room, p) === 'attack' ? m.rng.pick([ThrowKind.FRAG, ThrowKind.FLASH]) : ThrowKind.IMPACT;
+    if (applyPick(room, p, op, primary, false, secondary, throwable) === null) {
       m.pickAt = 0;
       return;
     }
@@ -121,6 +123,11 @@ function canSee(room: Room, p: Player, o: Player): boolean {
 function perceive(room: Room, p: Player, m: BotMind): void {
   const s = p.state;
   const now = room.time / 1000;
+  // flashed: nothing is seen until the white-out is over
+  if (room.time < p.blindUntil) {
+    m.target = null;
+    return;
+  }
   let best: Player | null = null;
   let bestD = Infinity;
   for (const o of room.players.values()) {
@@ -354,6 +361,7 @@ function decide(room: Room, p: Player, m: BotMind, now: number): void {
 
   if (m.target) {
     m.mode = 'fight';
+    planThrow(p, m, now);
     return;
   }
 
@@ -455,6 +463,29 @@ function decide(room: Room, p: Player, m: BotMind, now: number): void {
   } else {
     m.mode = 'hold';
   }
+}
+
+/** Sometimes answer a visible enemy with a grenade instead of bullets. */
+function planThrow(p: Player, m: BotMind, now: number): void {
+  const kind = p.throwKind;
+  if (p.throwLeft <= 0 || now < m.nadeAt || now < m.throwUntil) return;
+  if (kind !== ThrowKind.FRAG && kind !== ThrowKind.FLASH && kind !== ThrowKind.IMPACT) return;
+  const t = (m.target as Player).state;
+  const d = Math.hypot(t.x - p.state.x, t.z - p.state.z);
+  if (d < 7 || d > 20 || Math.abs(t.y - p.state.y) > 1.5) return;
+  m.nadeAt = now + 7 + m.rng.next() * 6;
+  if (m.rng.next() > 0.45) return;
+  m.throwUntil = now + 1.4;
+}
+
+/** Pitch that lands a throw at distance d and height difference dh, or null when it is out of reach. */
+function throwPitch(d: number, dh: number): number | null {
+  const v = THROW.speed;
+  const g = THROW.gravity;
+  const disc = v ** 4 - g * (g * d * d + 2 * dh * v * v);
+  if (disc < 0) return null;
+  // the low arc, minus a little because the release adds some lift
+  return Math.atan2(v * v - Math.sqrt(disc), g * d) - 0.07;
 }
 
 function setGoal(room: Room, p: Player, m: BotMind, x: number, y: number, z: number, now: number): void {
@@ -741,6 +772,27 @@ function aimAndShoot(p: Player, m: BotMind, now: number, wish: Wish): void {
       t.workedFor += dt;
     }
     return;
+  }
+
+  // lining up a grenade: face the target, lob it, then go back to shooting
+  if (m.target && m.mode === 'fight' && now < m.throwUntil && p.throwLeft > 0) {
+    const t = m.target.state;
+    const dx = t.x - s.x;
+    const dz = t.z - s.z;
+    const d = Math.hypot(dx, dz);
+    const pitch = throwPitch(d, t.y + 0.4 - ey);
+    if (pitch === null) {
+      m.throwUntil = 0;
+    } else {
+      const wantYaw = Math.atan2(-dx, -dz);
+      turnToward(m, wantYaw, pitch, dt, 9);
+      m.triggerHeld = false;
+      if (Math.abs(wrapAngle(wantYaw - m.yaw)) < 0.05 && Math.abs(pitch - m.pitch) < 0.05) {
+        wish.buttons |= Btn.THROW;
+        m.throwUntil = 0;
+      }
+      return;
+    }
   }
 
   if (m.target && m.mode === 'fight') {

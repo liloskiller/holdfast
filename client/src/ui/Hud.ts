@@ -22,6 +22,12 @@ export interface HudModel {
   gadgetLabel: string;
   gadgetUses: number;
   gadgetCd: number;
+  /** Secondary gadget (grenade or trap): label, how many are left, seconds to the next throw. */
+  thrLabel: string;
+  thrCount: number;
+  thrCd: number;
+  /** Flash blindness, 0 to 1 (1 is a white screen). */
+  flash: number;
   reinf: number;
   showReinf: boolean;
   timer: string;
@@ -55,7 +61,7 @@ export interface HudModel {
 export function emptyModel(): HudModel {
   return {
     alive: true, hp: 100, maxHp: 100, weaponName: '', fireMode: '', ammo: 0, reserve: 0, magSize: 0, reloading: false,
-    gadgetLabel: '', gadgetUses: 0, gadgetCd: 0, reinf: 0, showReinf: false, timer: '', timerHot: false,
+    gadgetLabel: '', gadgetUses: 0, gadgetCd: 0, thrLabel: '', thrCount: 0, thrCd: 0, flash: 0, reinf: 0, showReinf: false, timer: '', timerHot: false,
     phaseLabel: '', scoreFriend: 0, scoreFoe: 0, friendAlive: 0, foeAlive: 0, friendTotal: 0, foeTotal: 0,
     role: 'free', prompt: '', actProgress: 0, captureProgress: 0, crosshair: 6, ads: false, inDrone: false,
     droneHp: 0, jammed: false, inCamera: false, charges: 0, sensor: 0, spectating: '', markers: [], markerCount: 0,
@@ -117,6 +123,7 @@ export class Hud {
     this.hit = el('div', 'hitmarker hidden', undefined, root);
     for (let i = 0; i < 4; i++) el('div', 'hm hm' + i, undefined, this.hit);
     this.n['prompt'] = el('div', 'hud-prompt hidden', '', root);
+    this.n['flash'] = el('div', 'hud-flash', undefined, root);
     this.n['act'] = el('div', 'hud-act hidden', undefined, root);
     this.n['actFill'] = el('div', 'fill', undefined, this.n['act']);
 
@@ -134,6 +141,7 @@ export class Hud {
     this.n['ammo'] = el('span', 'ammo', '0', ammoRow);
     this.n['reserve'] = el('span', 'reserve', '/ 0', ammoRow);
     this.n['gadget'] = el('div', 'gadget', '', br);
+    this.n['thr'] = el('div', 'gadget thr', '', br);
     this.n['reinf'] = el('div', 'reinf hidden', '', br);
 
     // feeds
@@ -195,6 +203,10 @@ export class Hud {
     const gad = m.gadgetLabel ? `${m.gadgetLabel}  x${m.gadgetUses}${m.gadgetCd > 0.05 ? '  ' + Math.ceil(m.gadgetCd) + 's' : ''}` : '';
     setText(n['gadget'] as HTMLElement, gad);
     setClass(n['gadget'] as HTMLElement, 'hidden', gad === '');
+    const thr = m.thrLabel ? `${m.thrLabel}  x${m.thrCount}${m.thrCd > 0.05 ? '  ' + m.thrCd.toFixed(1) + 's' : ''}` : '';
+    setText(n['thr'] as HTMLElement, thr);
+    setClass(n['thr'] as HTMLElement, 'hidden', thr === '');
+    (n['flash'] as HTMLElement).style.opacity = String(Math.round(m.flash * 100) / 100);
     setText(n['reinf'] as HTMLElement, 'REINFORCEMENTS  x' + m.reinf);
     setClass(n['reinf'] as HTMLElement, 'hidden', !m.showReinf);
 

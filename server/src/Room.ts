@@ -12,6 +12,7 @@ import type { Conn } from './transport';
 import { processInputs } from './systems/movementSystem';
 import { startMatch, updateRound, onPlayerLeft, applyPick, sandboxStart, spawnRoundPlayer } from './systems/roundSystem';
 import { updateGadgets } from './systems/gadgetSystem';
+import { updateThrowables } from './systems/throwSystem';
 import { buildSnapshot } from './systems/visibilitySystem';
 import { debugCommand } from './systems/destructionSystem';
 import { updateBots } from './bots/botSystem';
@@ -194,7 +195,7 @@ export class Room {
       players: [...this.players.values()]
         .filter((p) => !p.isDummy)
         .map((p) => ({
-          id: p.id, name: p.name, team: p.team, ready: p.ready, op: p.op, primary: p.primary, secondary: p.secondary,
+          id: p.id, name: p.name, team: p.team, ready: p.ready, op: p.op, primary: p.primary, secondary: p.secondary, throwable: p.throwPick,
           host: p.id === this.hostId, connected: p.connected, kills: p.kills, deaths: p.deaths,
           objective: Math.round(p.objTime), alive: p.state.alive, ping: p.ping, bot: p.isBot,
         })),
@@ -343,7 +344,7 @@ export class Room {
         break;
       case 'PICK_OPERATOR':
         if (this.phase === PhaseId.OPERATOR_SELECT || this.sandbox) {
-          const err = applyPick(this, p, msg.op, msg.primary, this.sandbox, msg.secondary);
+          const err = applyPick(this, p, msg.op, msg.primary, this.sandbox, msg.secondary, msg.throwable);
           if (err) this.send(p, { t: 'ERR', msg: err });
           else if (this.sandbox) spawnRoundPlayer(this, p, true);
         }
@@ -445,6 +446,7 @@ export class Room {
     updateBots(this);
     processInputs(this);
     updateGadgets(this);
+    updateThrowables(this);
     updateRound(this);
     for (const p of this.players.values()) p.pushHistory(this.time);
 

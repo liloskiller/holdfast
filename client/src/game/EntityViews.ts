@@ -1,7 +1,7 @@
 // Views for placed gadgets and drones, created and removed as entities appear in snapshots.
 
 import * as THREE from 'three';
-import { COLORS, DRONE, EntityKind, GADGET, wrapAngle, type EntitySnap } from '@holdfast/shared';
+import { COLORS, DRONE, EntityKind, GADGET, ThrowKind, wrapAngle, type EntitySnap } from '@holdfast/shared';
 import { basicMat, box } from './geo';
 import type { Pose } from '../net/Interpolation';
 
@@ -135,6 +135,52 @@ export class EntityViews {
         extra.push(led);
         break;
       }
+      case EntityKind.GRENADE: {
+        const tint = e.a === ThrowKind.FRAG ? 0x56633a : e.a === ThrowKind.FLASH ? 0xc9ced4 : e.a === ThrowKind.SMOKE ? 0x8d8f91 : 0xc2452d;
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.13, 8), basicMat(tint));
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.048, 0.03, 8), basicMat(e.a === ThrowKind.FLASH ? 0xffd23c : 0x1e2125));
+        band.position.y = 0.03;
+        g.add(body, band);
+        extra.push(body);
+        break;
+      }
+      case EntityKind.SMOKE: {
+        // a cloud is a handful of overlapping soft grey blobs, drawn from the inside as well
+        const mat = new THREE.MeshBasicMaterial({ color: 0xb4b8bb, transparent: true, opacity: 0.93, depthWrite: false, side: THREE.DoubleSide });
+        const geo = new THREE.IcosahedronGeometry(1, 1);
+        geo.userData['shared'] = true;
+        const spots: [number, number, number, number][] = [
+          [0, 0, 0, 0.62], [0.42, 0.18, 0.1, 0.5], [-0.4, 0.12, 0.2, 0.52], [0.1, 0.3, -0.42, 0.5], [-0.12, -0.2, 0.4, 0.5], [0.3, -0.2, -0.3, 0.46], [-0.3, 0.35, -0.25, 0.44],
+        ];
+        for (const [x, y, z, r] of spots) {
+          const m = new THREE.Mesh(geo, mat);
+          m.position.set(x, y, z);
+          m.scale.setScalar(r);
+          m.renderOrder = 2;
+          g.add(m);
+        }
+        break;
+      }
+      case EntityKind.WIRE: {
+        g.add(box(1.0, 0.03, 0.8, 0x2a2d31, 0, 0.015, 0));
+        const steel = basicMat(0xc9ced4);
+        for (let i = 0; i < 14; i++) {
+          const s = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.14, 4), steel);
+          s.position.set(((i * 37) % 17) / 17 - 0.5 + 0.03, 0.1, ((i * 53) % 13) / 13 * 0.7 - 0.35);
+          s.rotation.z = ((i % 3) - 1) * 0.4;
+          g.add(s);
+        }
+        for (let i = 0; i < 3; i++) g.add(box(0.95, 0.012, 0.012, 0x9aa0a6, 0, 0.06 + i * 0.03, -0.25 + i * 0.25));
+        break;
+      }
+      case EntityKind.ALARM: {
+        g.add(box(0.2, 0.08, 0.2, 0x23272c, 0, 0.04, 0));
+        g.add(box(0.012, 0.16, 0.012, 0x111111, 0.06, 0.16, 0.05));
+        const led = box(0.05, 0.03, 0.05, 0xffa000, -0.04, 0.095, 0);
+        g.add(led);
+        extra.push(led);
+        break;
+      }
       case EntityKind.BOMB: {
         // the defuser: a case with a red light that blinks as long as it counts down
         g.add(box(0.36, 0.14, 0.24, 0x23272c, 0, 0.07, 0));
@@ -216,6 +262,19 @@ export class EntityViews {
           break;
         case EntityKind.BOMB:
           for (const l of v.extra) l.visible = Math.floor(this.time * 5) % 2 === 0;
+          break;
+        case EntityKind.ALARM:
+          for (const l of v.extra) l.visible = Math.floor(this.time * 2) % 2 === 0;
+          break;
+        case EntityKind.GRENADE:
+          for (const b of v.extra) {
+            b.rotation.x += dt * 9;
+            b.rotation.z += dt * 5;
+          }
+          break;
+        case EntityKind.SMOKE:
+          g.position.y = pose.y + 0.5;
+          g.scale.setScalar(Math.max(0.2, e.a));
           break;
         default:
           break;
