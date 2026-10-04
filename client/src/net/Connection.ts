@@ -79,6 +79,11 @@ export class WsConnection implements Transport {
 
   static open(url: string = WsConnection.url(), cfg: LagConfig = lagFromQuery()): Promise<WsConnection> {
     return new Promise((resolve, reject) => {
+      if (location.protocol === 'file:') {
+        // the single file offline build has no server behind it
+        reject(new Error('This offline file only does solo Practice. For multiplayer, run the server (npm run lan) and open its address.'));
+        return;
+      }
       let ws: WebSocket;
       try {
         ws = new WebSocket(url);

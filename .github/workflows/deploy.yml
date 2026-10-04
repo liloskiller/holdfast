@@ -1,0 +1,32 @@
+# Manual deploy template for a Hetzner box (Cloudflare in front). Needs repository secrets:
+# HETZNER_HOST, HETZNER_USER, HETZNER_SSH_KEY. Adjust REMOTE_DIR and the service name to taste.
+name: deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      REMOTE_DIR: /opt/holdfast
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck && npm test && npm run build
+      - name: Install ssh key
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/id_deploy
+          echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+      - name: Sync and restart
+        run: |
+          rsync -az --delete -e "ssh -i ~/.ssh/id_deploy" \
+            --exclude node_modules --exclude certs --exclude .git ./ \
+            "${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}:$REMOTE_DIR/"
+          ssh -i ~/.ssh/id_deploy "${{ secrets.HETZNER_USER }}@${{ secrets.HETZNER_HOST }}" \
+            "cd $REMOTE_DIR && npm ci --omit=dev=false && sudo systemctl restart holdfast"

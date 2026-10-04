@@ -57,8 +57,8 @@ Units: **1 world unit = 1 meter.** Y is up. Right handed (Three.js default).
 
 ## Repo notes (added during the first build session)
 
-- This game lives in `holdfast/` inside the `caliente` repo. The nightclub website at the repo root is unrelated, do not touch it.
-- `npm install` needs `legacy-peer-deps=true` (already set in `holdfast/.npmrc`).
+- This is a standalone repository. It started life inside an unrelated website repo and was split out with its history, so there is nothing else to protect here.
+- `npm install` needs `legacy-peer-deps=true` (already set in `.npmrc`).
 - Everything in `shared/` must stay deterministic and free of DOM, Three.js, `Date` and `Math.random` (a test enforces this).
 - `server/src/engine.ts` is platform neutral (no Node imports) so the same Room code runs in Node (real server) and in the browser (Practice mode over a loopback transport).
 - The map is plain ASCII in `shared/maps/safehouse.map.txt`. After editing run `npm run map:check`.

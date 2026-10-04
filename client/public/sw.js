@@ -1,11 +1,14 @@
-// HOLDFAST service worker: makes the app installable and fast to reopen.
-// Hashed build assets are cache first, the page itself is network first so updates arrive.
-const CACHE = 'holdfast-v1';
+// HOLDFAST service worker: makes the app installable and lets it open with no network at all.
+// The build step fills in PRECACHE (every file of the build) and BUILD (a content hash), so a new
+// build gets a new cache and the old one is deleted. Hashed assets are cache first, the page itself
+// is network first so updates arrive when online and the cached copy is used when offline.
+const CACHE = 'holdfast-__BUILD__';
+const PRECACHE = /*__PRECACHE__*/[];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(['./', './manifest.webmanifest', './icon-192.png']).catch(() => undefined)),
+    caches.open(CACHE).then((c) => c.addAll(PRECACHE).catch(() => undefined)),
   );
 });
 

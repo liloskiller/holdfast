@@ -15,13 +15,14 @@
   "scripts": {
     "dev": "tsx scripts/dev.ts",
     "build": "npm run build -w @holdfast/client",
+    "build:offline": "tsx scripts/build-offline.ts",
     "test": "vitest run",
     "typecheck": "tsc -p shared --noEmit && tsc -p server --noEmit && tsc -p client --noEmit",
     "start": "tsx server/src/index.ts",
     "lan": "tsx scripts/lan.ts",
     "map:check": "tsx scripts/mapcheck.ts",
     "icons": "tsx scripts/make-icons.ts",
-    "lint:dashes": "node -e \"const fs=require('fs'),p=require('path');let bad=0;(function w(d){for(const f of fs.readdirSync(d)){if(['node_modules','dist','certs','.git'].includes(f))continue;const q=p.join(d,f);if(fs.statSync(q).isDirectory())w(q);else if(/\\.(ts|md|css|html|json|txt|js|mjs|yml)$/.test(f)&&fs.readFileSync(q,'utf8').includes('\\u2014')){console.log('em dash in',q);bad=1}}})('.');process.exit(bad)\""
+    "lint:dashes": "node -e \"const fs=require('fs'),p=require('path');let bad=0;(function w(d){for(const f of fs.readdirSync(d)){if(['node_modules','dist','dist-offline','certs','.git'].includes(f))continue;const q=p.join(d,f);if(fs.statSync(q).isDirectory())w(q);else if(/\\.(ts|md|css|html|json|txt|js|mjs|yml)$/.test(f)&&fs.readFileSync(q,'utf8').includes('\\u2014')){console.log('em dash in',q);bad=1}}})('.');process.exit(bad)\""
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

@@ -1,4 +1,4 @@
-# Build context: the holdfast/ directory.   docker build -f deploy/Dockerfile -t holdfast .
+# Build context: the repository root.   docker build -f deploy/Dockerfile -t holdfast .
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./

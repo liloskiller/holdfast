@@ -7,14 +7,13 @@ TypeScript, Three.js, and a tiny authoritative Node WebSocket server. No game en
 - 2 to 10 players, one life per round, attackers vs defenders on one two floor house ("Safehouse").
 - Destructible walls and floors, reinforcement, barricades, hard breach charges, drones, security cameras, pulse sensors, traps, jammers, shields, heal darts.
 - Server authoritative with client prediction, snapshot interpolation and lag compensated hitscan.
-- Phone and desktop first class. Installable as a PWA.
+- Phone and desktop first class. Installable as a PWA, and playable fully offline (see below).
 
 `PLAN.md` is the full design. `CLAUDE.md` holds the working rules.
 
 ## Quick start
 
 ```bash
-cd holdfast
 npm install        # .npmrc sets legacy-peer-deps, you do not need to pass anything
 npm run dev        # game server + Vite dev server (HTTPS)
 ```
@@ -35,6 +34,21 @@ Phones need a **secure context** (HTTPS) for Wake Lock, gyro aim and installing 
 In the game: one person taps **CREATE ROOM**, everyone else enters the 4 letter code (or scans the QR in the lobby). The host picks settings and starts the match.
 
 **iPhone:** Safari has no fullscreen for web pages. Use Share, then **Add to Home Screen**, and open it from there. Audio only starts after your first tap. Rotate to landscape.
+
+## Playing offline
+
+| What you want | How | Needs |
+|---|---|---|
+| Solo Practice, nothing installed, no internet | `npm run build:offline`, then open `dist-offline/holdfast.html` (about 760 KB, one file, double click it). Copy it to a USB stick or another computer and it still works. | Any modern browser. No server. Solo Practice only, multiplayer shows a message. |
+| Solo Practice, reopens like an app | Visit the game once while online (or on `localhost`), then it is cached by a service worker and opens with no network at all. On a phone use Add to Home Screen. | One visit over `localhost` or a real HTTPS certificate. |
+| Multiplayer with friends and no internet | `npm run lan` on one laptop, everyone joins that laptop's address over the same Wi-Fi or a phone hotspot. Nothing is fetched from the internet at runtime (no CDN, no fonts, no analytics). | Run `npm install` once while online. |
+
+Notes:
+
+- Practice is a real authoritative room that runs inside the page, so it plays exactly like online except for the other players.
+- Chrome and Edge refuse to register service workers on a self signed certificate, so the "reopens offline" behaviour does not apply to `npm run lan` pages that you reached through the certificate warning. Use the single file, `localhost`, or a real certificate (a Cloudflare Tunnel gives you one) for that. LAN multiplayer itself is unaffected.
+- The single file build has no PWA, wake lock or gyro features, because browsers only grant those to secure origins.
+- Tested here in headless Chromium: the single file from `file://` (one request, the file itself), and the service worker reopening the game with the server stopped. Not yet tested on a real phone.
 
 ## Controls
 
@@ -79,6 +93,7 @@ If someone's connection drops, they keep their slot: a 3 second grace period bef
 | `npm run dev` | Server (tsx watch) and Vite dev server together, HTTPS, QR for phones |
 | `npm run lan` | Build and serve over HTTPS on one port with a QR code |
 | `npm run build` / `npm start` | Production build / production server (serves `client/dist`) |
+| `npm run build:offline` | One self contained `dist-offline/holdfast.html` for solo Practice with no server |
 | `npm test` | Vitest unit and integration tests (includes bots playing over real websockets) |
 | `npm run typecheck` | Strict TypeScript for shared, server and client |
 | `npm run map:check` | Validates every map in `shared/maps` (reachability with a player sized footprint, spawns, counts) |
@@ -111,7 +126,7 @@ Key ideas:
 
 ## Deploying (Hetzner behind Cloudflare)
 
-`deploy/Dockerfile` builds and runs the server and client in one image; `deploy/holdfast.service` is a systemd unit if you prefer running on the host. Put Cloudflare in front with WebSockets enabled and "Always use HTTPS". The game sends protocol level pings every 15 seconds, well inside Cloudflare's idle timeout. `/health` returns `{"ok":true}`. A manual GitHub Actions deploy template lives in `../.github/workflows/holdfast-deploy.yml`.
+`deploy/Dockerfile` builds and runs the server and client in one image; `deploy/holdfast.service` is a systemd unit if you prefer running on the host. Put Cloudflare in front with WebSockets enabled and "Always use HTTPS". The game sends protocol level pings every 15 seconds, well inside Cloudflare's idle timeout. `/health` returns `{"ok":true}`. A manual GitHub Actions deploy template lives in `.github/workflows/deploy.yml`.
 
 ## Known limitations (v1)
 
