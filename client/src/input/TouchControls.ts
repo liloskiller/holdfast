@@ -28,8 +28,8 @@ const DEFS: BtnDef[] = [
   { id: 'switch', label: 'SWAP', btn: 0, mode: 'tap', cls: 't-switch', ctx: 'body' },
   { id: 'drone', label: 'DRONE', btn: Btn.DRONE, mode: 'tap', cls: 't-drone' },
   { id: 'cam', label: 'CAM', btn: Btn.CAMERA, mode: 'tap', cls: 't-cam', ctx: 'body' },
-  { id: 'leanl', label: 'LEAN', btn: Btn.LEAN_L, mode: 'hold', cls: 't-leanl', ctx: 'body' },
-  { id: 'leanr', label: 'LEAN', btn: Btn.LEAN_R, mode: 'hold', cls: 't-leanr', ctx: 'body' },
+  { id: 'leanl', label: 'LEAN', btn: Btn.LEAN_L, mode: 'toggle', cls: 't-leanl', ctx: 'body' },
+  { id: 'leanr', label: 'LEAN', btn: Btn.LEAN_R, mode: 'toggle', cls: 't-leanr', ctx: 'body' },
   { id: 'up', label: 'HOP', btn: Btn.UP, mode: 'tap', cls: 't-up', ctx: 'drone' },
 ];
 
@@ -183,13 +183,33 @@ export class TouchControls {
   }
 
   private toggle(def: BtnDef): void {
-    const el = this.buttons.get(def.id);
     const on = !this.toggled.has(def.id);
-    if (on) this.toggled.add(def.id);
-    else this.toggled.delete(def.id);
-    el?.classList.toggle('on', on);
     if (def.id === 'crouch') this.input.crouchToggle = on;
     else if (def.id === 'ads') this.input.adsToggle = on;
+    else if (def.id === 'leanl' || def.id === 'leanr') {
+      // tap to lean and stay, tap again to come back, tapping the other side switches over
+      this.input.leanToggle = on ? def.btn : 0;
+    }
+    if (on) this.toggled.add(def.id);
+    else this.toggled.delete(def.id);
+    this.syncToggles();
+  }
+
+  /** Make the lit buttons match the input state (it is reset on death, round change and pause). */
+  private syncToggles(): void {
+    const inp = this.input;
+    const state: Record<string, boolean> = {
+      crouch: inp.crouchToggle,
+      ads: inp.adsToggle,
+      leanl: inp.leanToggle === Btn.LEAN_L,
+      leanr: inp.leanToggle === Btn.LEAN_R,
+    };
+    for (const id of Object.keys(state)) {
+      const on = state[id] === true;
+      if (on) this.toggled.add(id);
+      else this.toggled.delete(id);
+      this.buttons.get(id)?.classList.toggle('on', on);
+    }
   }
 
   /** Called by the game when sprint should flip (stick pushed fully). */
@@ -263,6 +283,7 @@ export class TouchControls {
 
   /** Update which buttons are visible for the current context. */
   setContext(inDrone: boolean, camCount: number, droneAllowed: boolean): void {
+    this.syncToggles();
     for (const [id, el] of this.buttons) {
       const ctx = el.dataset['ctx'];
       let show = true;

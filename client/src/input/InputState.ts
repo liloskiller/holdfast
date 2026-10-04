@@ -16,6 +16,8 @@ export class InputState {
   crouchToggle = false;
   sprintToggle = false;
   adsToggle = false;
+  /** Lean latched by the touch buttons: 0, Btn.LEAN_L or Btn.LEAN_R. Tap once to lean, tap again to stop. */
+  leanToggle = 0;
   /** Raw look deltas in pixels (or touch units), consumed by the game each frame. */
   lookDX = 0;
   lookDY = 0;
@@ -43,6 +45,7 @@ export class InputState {
     if (this.crouchToggle) b |= Btn.CROUCH;
     if (this.sprintToggle) b |= Btn.SPRINT;
     if (this.adsToggle) b |= Btn.ADS;
+    b |= this.leanToggle;
     this.pulse = 0;
     return b;
   }
@@ -62,6 +65,7 @@ export class InputState {
     this.crouchToggle = false;
     this.sprintToggle = false;
     this.adsToggle = false;
+    this.leanToggle = 0;
     this.lookDX = 0;
     this.lookDY = 0;
   }

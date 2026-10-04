@@ -265,7 +265,7 @@ export function parseMap(text: string): MapData {
         const x = (tx + 0.5) * TILE;
         const z = (tz + 0.5) * TILE;
         map.defenderSpawns.push({
-          name: `Defender ${f}.${gi}`, floor: f, tx, tz, x, y: f * FLOOR_H, z, yaw: faceCenter(x, z) + Math.PI,
+          name: `Defender ${f}.${gi}`, floor: f, tx, tz, x, y: f * FLOOR_H, z, yaw: faceCenter(x, z),
         });
       }
     });

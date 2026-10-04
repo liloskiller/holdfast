@@ -2,7 +2,8 @@
 
 import {
   GameMode, PhaseId, operatorDef, OPERATORS, defaultOperator, resetLoadout, PLAYER, FLOOR_H,
-  type SpawnPoint,
+  spreadPick, openFacing,
+  type SpawnPoint, type Spot,
 } from '@holdfast/shared';
 import { Player } from '../Player';
 import type { Room } from '../Room';
@@ -239,7 +240,8 @@ function assignSpawns(room: Room): void {
   const att = room.connectedHumans().filter((p) => p.team === room.attackerTeam);
   const def = room.connectedHumans().filter((p) => p.team !== room.attackerTeam);
 
-  // attackers: spread across spawn groups
+  // attackers: players are dealt over the spawn groups (in a random order each round), and inside a
+  // group they take points as far apart as the group allows so nobody starts on top of a friend
   const groups = new Map<string, SpawnPoint[]>();
   for (const sp of room.map.attackerSpawns) {
     let g = groups.get(sp.name);
@@ -249,28 +251,36 @@ function assignSpawns(room: Room): void {
     }
     g.push(sp);
   }
-  const groupList = [...groups.values()];
-  const used = new Map<number, number>();
+  const groupList = shuffled([...groups.values()], room);
+  const crews: Player[][] = groupList.map(() => []);
   att.forEach((p, i) => {
-    const gi = i % Math.max(1, groupList.length);
-    const g = groupList[gi] ?? room.map.attackerSpawns;
-    const n = used.get(gi) ?? 0;
-    used.set(gi, n + 1);
-    setupState(room, p, g[n % g.length] as SpawnPoint);
+    if (groupList.length) (crews[i % groupList.length] as Player[]).push(p);
+  });
+  groupList.forEach((g, gi) => {
+    const crew = crews[gi] as Player[];
+    if (!crew.length) return;
+    const picks = spreadPick(g, crew.length, [], Math.floor(room.rand() * g.length));
+    crew.forEach((p, n) => setupState(room, p, g[picks[n] as number] as SpawnPoint));
   });
 
-  // defenders: shuffled distinct points
-  const spots = [...room.map.defenderSpawns];
-  for (let i = spots.length - 1; i > 0; i--) {
-    const j = Math.floor(room.rand() * (i + 1));
-    const t = spots[i] as SpawnPoint;
-    spots[i] = spots[j] as SpawnPoint;
-    spots[j] = t;
-  }
+  // defenders: spread over the defender points, each one turned toward the most open direction
+  const spots = room.map.defenderSpawns;
+  const picks = spreadPick(spots, def.length, [], Math.floor(room.rand() * Math.max(1, spots.length)));
   def.forEach((p, i) => {
-    const sp = spots[i % Math.max(1, spots.length)] as SpawnPoint;
-    setupState(room, p, sp);
+    const sp = spots[picks[i] as number];
+    if (!sp) return;
+    setupState(room, p, { x: sp.x, y: sp.y, z: sp.z, yaw: openFacing(room.world, sp, sp.yaw) });
   });
+}
+
+function shuffled<T>(list: T[], room: Room): T[] {
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(room.rand() * (i + 1));
+    const t = list[i] as T;
+    list[i] = list[j] as T;
+    list[j] = t;
+  }
+  return list;
 }
 
 /** (Re)spawn one player: used by Practice mode and dummies. */
@@ -287,7 +297,12 @@ export function spawnRoundPlayer(room: Room, p: Player, keepPos = false): void {
     return;
   }
   const spawns = room.map.attackerSpawns.length ? room.map.attackerSpawns : room.map.defenderSpawns;
-  const sp = spawns[Math.floor(room.rand() * spawns.length)];
+  if (!spawns.length) return;
+  // start as far from everybody else as the map allows
+  const others: Spot[] = [];
+  for (const o of room.players.values()) if (o !== p && o.state.alive) others.push({ x: o.state.x, y: o.state.y, z: o.state.z });
+  const pick = spreadPick(spawns, 1, others, Math.floor(room.rand() * spawns.length))[0];
+  const sp = pick === undefined ? undefined : spawns[pick];
   if (sp) setupState(room, p, sp);
 }
 
