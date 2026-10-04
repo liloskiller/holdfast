@@ -135,6 +135,8 @@ The game has two parts with different hosting needs:
 
 Vercel, Netlify and similar serverless platforms cannot run the server (functions are short lived and cannot keep a match alive), so **do not put the whole game on Vercel and expect multiplayer to work**: the page would load and Practice would run, but CREATE ROOM and JOIN would fail.
 
+A `vercel.json` is included for the static client (output `client/dist`), so importing this repository into Vercel deploys the menu and solo Practice with no settings to change.
+
 The simplest setup is one container that serves both the client and the WebSocket on one URL, because the client connects to whatever host it was loaded from:
 
 - **Container host (Fly.io, Railway, Render, ...):** create a service from this repository using `deploy/Dockerfile`, set the health check path to `/health`, and let the platform provide HTTPS. The server listens on `$PORT` (8080 in the image) on all interfaces. Rooms live in memory, so a restart ends running matches, and a platform that sleeps idle services makes the first visitor wait for it to wake.
