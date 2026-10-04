@@ -7,7 +7,8 @@ TypeScript, Three.js, and a tiny authoritative Node WebSocket server. No game en
 - 2 to 10 players, one life per round, attackers vs defenders on one two floor house ("Safehouse").
 - Destructible walls and floors, reinforcement, barricades, hard breach charges, drones, security cameras, pulse sensors, traps, jammers, shields, heal darts.
 - Server authoritative with client prediction, snapshot interpolation and lag compensated hitscan.
-- Phone and desktop first class. Installable as a PWA, and playable fully offline (see below).
+- Phone, desktop and gamepad first class. Installable as a PWA, and playable fully offline (see below), including solo matches against bots.
+- Real recoil, nine weapons, leaning, a grounded hopping RC drone.
 
 `PLAN.md` is the full design. `CLAUDE.md` holds the working rules.
 
