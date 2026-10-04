@@ -257,8 +257,8 @@ export interface PhaseInfo {
 
 /** [cellId, hp, reinforced 0/1] */
 export type CellDiff = [number, number, number];
-/** [openingId, flags, hp, barricadeHp] flags: 1 open, 2 destroyed, 4 barricaded */
-export type OpeningDiff = [number, number, number, number];
+/** [openingId, flags, hp, planks] flags: 1 open, 2 destroyed, 4 barricaded; planks is one digit (0 to 9) per plank */
+export type OpeningDiff = [number, number, number, string];
 
 export interface WorldDiff {
   c: CellDiff[];

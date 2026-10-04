@@ -15,10 +15,12 @@ Run through this on each target. Use `?debug` for the stats overlay.
 Targets: desktop Chrome, Android Chrome, iPhone Safari in the browser, iPhone Safari as an installed Home Screen app, and one run with `?lag=150&jitter=30&loss=5`.
 
 ### Movement and map (Practice)
+- [ ] Spawns: in a solo or online match attackers start spread out inside their spawn area, defenders are apart and look into the room (not at a wall)
 - [ ] Spawn outside, walk to the house, open a door with E, walk through every room on both floors
 - [ ] No wall clipping, stairs climb and descend smoothly, crouch fits under low gaps
 - [ ] Break a window (shoot it), tap F next to it to vault through
 - [ ] Shoot a plaster wall: cells wear down and vanish; shoot concrete: nothing happens
+- [ ] Barricade a door or window (hold E), then shoot it: single planks break exactly where the bullets land and you can see (and shoot) through the hole. Kick it: a hand sized hole opens. Walk through only when a body sized gap is open; a window can be vaulted once every plank and pane is gone
 - [ ] Press N on a marked panel (red/brown R wall): it turns to metal and ignores bullets; B blasts it anyway
 - [ ] Shoot a floor hatch from below and from above, drop through it
 
@@ -35,6 +37,7 @@ Targets: desktop Chrome, Android Chrome, iPhone Safari in the browser, iPhone Sa
 - [ ] Talon fires exactly 3 rounds per click. Whisper does not light up the compass of an enemy at range.
 - [ ] Legs do less damage than the body, headshots with Marksman / Sidearm / Magnum kill in one hit.
 - [ ] Lean with Q / E: view rolls and shifts, a peeking head is hittable around a corner, you cannot lean into a wall
+- [ ] Phone: tap a LEAN button and the lean stays, tap it again to stop, tap the other side to switch
 - [ ] A drop of two floors hurts a lot, a step down does not
 - [ ] Targets die, kill feed shows, hit marker and headshot sound differ
 - [ ] Reload, swap weapons, ADS, kick a barricade

@@ -201,7 +201,7 @@ export function shoot(room: Room, shooter: Player, shotIdx: number, weaponId: nu
           room.sound('metal', hit.x, hit.y, hit.z, 25, shooter.id, shooter.team);
         }
       } else if (hit.kind === HitKind.OPENING) {
-        const broke = room.world.damageOpening(hit.id, def.wallDamage);
+        const broke = room.world.damageOpeningAt(hit.id, hit.sub, hit.x, hit.y, hit.z, def.wallDamage, SIEGE.bulletPlankRadius);
         if (!soundDone.has('b' + hit.id)) {
           soundDone.add('b' + hit.id);
           room.sound(broke ? 'wall' : 'barricade', hit.x, hit.y, hit.z, 25, shooter.id, shooter.team);
@@ -334,7 +334,7 @@ export function melee(room: Room, p: Player): void {
   if (room.world.raycast(s.x, s.y + eye, s.z, dx, dy, dz, SIEGE.meleeRange + 0.4, hit)) {
     const mul = operatorDef(p.op).meleeStructureMul;
     if (hit.kind === HitKind.OPENING) {
-      const broke = room.world.damageOpening(hit.id, SIEGE.meleeBarricadeDamage * mul);
+      const broke = room.world.damageOpeningAt(hit.id, hit.sub, hit.x, hit.y, hit.z, SIEGE.meleeBarricadeDamage * mul, SIEGE.meleePlankRadius);
       room.sound(broke ? 'wall' : 'barricade', hit.x, hit.y, hit.z, 30, p.id, p.team);
     } else if (hit.kind === HitKind.DYN) {
       const e = [...room.entities.values()].find((en) => en.dynId === hit.id);

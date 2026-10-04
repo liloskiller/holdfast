@@ -77,9 +77,96 @@ describe('World', () => {
     w.setDoorOpen(door.id, false);
     expect(w.placeBarricade(door.id)).toBe(true);
     expect(w.setDoorOpen(door.id, true)).toBe(false);
-    expect(w.damageOpening(door.id, 149)).toBe(false);
-    expect(w.damageOpening(door.id, 5)).toBe(true);
-    expect(door.barricadeHp).toBe(0);
+    expect(door.planks.length).toBe(door.plankCols * door.plankRows);
+    expect(door.barricadeHp).toBeGreaterThan(0);
+  });
+
+  /** A ray straight through the middle of an opening, from the side the opening faces. */
+  function shootAt(op: (typeof w.openings)[number], y: number, along: number, hit = makeRayHit()): ReturnType<typeof makeRayHit> {
+    const x0 = op.alongX ? along : op.box.minX - 2;
+    const z0 = op.alongX ? op.box.minZ - 2 : along;
+    w.raycast(x0, y, z0, op.alongX ? 0 : 1, 0, op.alongX ? 1 : 0, 6, hit);
+    return hit;
+  }
+
+  it('a barricade breaks plank by plank where it is hit', () => {
+    const door = w.openings.find((o) => o.kind === 'door' && o.floor === 0)!;
+    w.placeBarricade(door.id);
+    const total = door.planks.length;
+    const y = door.box.minY + 1.1;
+    const along = door.alongX ? door.cx : door.cz;
+    const hit = shootAt(door, y, along + 0.07);
+    expect(hit.kind).toBe(HitKind.OPENING);
+    expect(hit.sub).toBeGreaterThanOrEqual(0);
+    const first = hit.sub;
+    // 30 hp planks: two shots of 12 are not enough, the third one breaks it
+    expect(w.damageOpeningAt(hit.id, hit.sub, hit.x, hit.y, hit.z, 12, 0.06)).toBe(false);
+    expect(w.damageOpeningAt(hit.id, hit.sub, hit.x, hit.y, hit.z, 12, 0.06)).toBe(false);
+    expect(w.damageOpeningAt(hit.id, hit.sub, hit.x, hit.y, hit.z, 12, 0.06)).toBe(true);
+    expect(door.planks[first]).toBe(0);
+    expect(w.plankCount(door)).toBeGreaterThanOrEqual(total - 2);
+    expect(w.plankCount(door)).toBeLessThan(total);
+    expect(door.barricadeHp).toBeGreaterThan(0);
+
+    // the hole is see-through: the same shot now reaches the door leaf behind
+    const again = shootAt(door, y, along + 0.07);
+    expect(again.kind).toBe(HitKind.OPENING);
+    expect(again.sub).toBe(-1);
+    // and a shot at an untouched part of the barricade still lands on a plank
+    const other = shootAt(door, door.box.minY + 0.3, along - 0.3);
+    expect(other.sub).toBeGreaterThanOrEqual(0);
+  });
+
+  it('holes let you walk through only when they are big enough', () => {
+    const win = w.openings.find((o) => o.kind === 'window' && o.floor === 0)!;
+    w.placeBarricade(win.id);
+    for (const g of win.glass) w.killCell(g);
+    const lo = win.alongX ? win.box.minX : win.box.minZ;
+    const fits = (centre: number, half: number): boolean => win.alongX
+      ? w.boxFree(centre - half, win.box.minY + 0.01, win.box.minZ + 0.1, centre + half, win.box.maxY - 0.01, win.box.maxZ - 0.1)
+      : w.boxFree(win.box.minX + 0.1, win.box.minY + 0.01, centre - half, win.box.maxX - 0.1, win.box.maxY - 0.01, centre + half);
+    const clearColumns = (cols: number[]): void => {
+      for (let row = 0; row < win.plankRows; row++) for (const c of cols) win.planks[row * win.plankCols + c] = 0;
+    };
+    expect(fits(lo + 0.5, 0.1)).toBe(false);
+    clearColumns([1, 2]);
+    // half a metre of gap: too narrow for a body (0.7 m), enough for nothing but bullets
+    expect(fits(lo + 0.5, 0.3)).toBe(false);
+    clearColumns([0]);
+    expect(fits(lo + 0.375, 0.3)).toBe(true);
+    // still not vaultable while a plank column is left
+    expect(w.windowClear(win)).toBe(false);
+  });
+
+  it('a kick clears a hand sized hole and a blast clears more', () => {
+    const win = w.openings.find((o) => o.kind === 'window' && o.floor === 0)!;
+    w.placeBarricade(win.id);
+    const total = win.planks.length;
+    const y = win.box.minY + 0.5;
+    const broke = w.damageBarricade(win.id, win.cx, y, win.cz, 40, 0.32);
+    expect(broke).toBeGreaterThanOrEqual(4);
+    expect(w.plankCount(win)).toBe(total - broke);
+    w.explode(win.cx, y, win.cz, 3, 400);
+    expect(win.barricadeHp).toBe(0);
+  });
+
+  it('plank state replicates to clients and late joiners', () => {
+    const client = new World(map);
+    const late = new World(map);
+    const win = w.openings.find((o) => o.kind === 'window' && o.floor === 0)!;
+    w.placeBarricade(win.id);
+    w.damageBarricade(win.id, win.cx, win.box.minY + 0.5, win.cz, 20, 0.3);
+    client.applyDiff(w.flushDiff()!);
+    late.applyDiff(w.fullDiff());
+    const alive = (o: typeof win): number[] => o.planks.map((h) => (h > 0 ? 1 : 0));
+    for (const other of [client, late]) {
+      const o = other.openings[win.id]!;
+      expect(alive(o)).toEqual(alive(win));
+      expect(o.barricadeHp).toBeGreaterThan(0);
+    }
+    w.damageBarricade(win.id, win.cx, win.box.minY + 0.5, win.cz, 999, 5);
+    client.applyDiff(w.flushDiff()!);
+    expect(client.openings[win.id]!.barricadeHp).toBe(0);
   });
 
   it('diffs replicate to a second world and to late joiners', () => {

@@ -28,10 +28,12 @@ export interface RayHit {
   nz: number;
   /** cell id, opening id or dynamic solid id depending on kind */
   id: number;
+  /** For openings: the plank that was hit, or -1 when it was the door itself. */
+  sub: number;
 }
 
 export function makeRayHit(): RayHit {
-  return { kind: HitKind.NONE, t: 0, x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 0, id: -1 };
+  return { kind: HitKind.NONE, t: 0, x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 0, id: -1, sub: -1 };
 }
 
 export interface RayOpts {
@@ -56,7 +58,12 @@ export interface Opening {
   destroyed: boolean;
   hp: number;
   maxHp: number;
+  /** Sum of the plank hit points: above zero while any part of a barricade is left. */
   barricadeHp: number;
+  /** Barricade planks, one hit point value per plank, bottom row first. Empty when not barricaded. */
+  planks: number[];
+  plankCols: number;
+  plankRows: number;
   glass: number[];
   cx: number;
   cz: number;
@@ -311,7 +318,7 @@ export class World {
           };
           const opening: Opening = {
             id, kind: ch === 'D' ? 'door' : 'window', floor: f, tiles, alongX, box,
-            open: false, destroyed: false, hp: SIEGE.doorHp, maxHp: SIEGE.doorHp, barricadeHp: 0, glass: [],
+            open: false, destroyed: false, hp: SIEGE.doorHp, maxHp: SIEGE.doorHp, barricadeHp: 0, planks: [], plankCols: 0, plankRows: 0, glass: [],
             cx: (box.minX + box.maxX) / 2, cz: (box.minZ + box.maxZ) / 2,
           };
           if (ch === 'g') {
@@ -333,6 +340,8 @@ export class World {
               else addCell(tx, base + 4, tz, MaterialId.PLASTER);
             }
           }
+          opening.plankCols = Math.max(1, Math.round((alongX ? box.maxX - box.minX : box.maxZ - box.minZ) / SIEGE.plankSize));
+          opening.plankRows = Math.max(1, Math.round((box.maxY - box.minY) / SIEGE.plankSize));
           this.openings.push(opening);
         }
       }
@@ -524,13 +533,27 @@ export class World {
     }
     for (let i = 0; i < this.openings.length; i++) {
       const op = this.openings[i] as Opening;
-      if (!this.openingSolid(op) || n >= cap) continue;
+      if (n >= cap || !this.openingSolid(op)) continue;
       const bx = op.box;
       if (bx.maxX < minX - e || bx.minX > maxX + e || bx.maxZ < minZ - e || bx.minZ > maxZ + e || bx.maxY < minY - e || bx.minY > maxY + e) continue;
-      const o = n * BOX_STRIDE;
-      out[o] = bx.minX; out[o + 1] = bx.minY; out[o + 2] = bx.minZ;
-      out[o + 3] = bx.maxX; out[o + 4] = bx.maxY; out[o + 5] = bx.maxZ;
-      n++;
+      if (this.doorShut(op)) {
+        const o = n * BOX_STRIDE;
+        out[o] = bx.minX; out[o + 1] = bx.minY; out[o + 2] = bx.minZ;
+        out[o + 3] = bx.maxX; out[o + 4] = bx.maxY; out[o + 5] = bx.maxZ;
+        n++;
+        continue;
+      }
+      // a barricade blocks plank by plank, so a hole you can fit through is a way through
+      const pb = this.plankScratch;
+      for (let k = 0; k < op.planks.length && n < cap; k++) {
+        if ((op.planks[k] as number) <= 0) continue;
+        this.plankBox(op, k, pb);
+        if (pb.maxX < minX - e || pb.minX > maxX + e || pb.maxZ < minZ - e || pb.minZ > maxZ + e || pb.maxY < minY - e || pb.minY > maxY + e) continue;
+        const o = n * BOX_STRIDE;
+        out[o] = pb.minX; out[o + 1] = pb.minY; out[o + 2] = pb.minZ;
+        out[o + 3] = pb.maxX; out[o + 4] = pb.maxY; out[o + 5] = pb.maxZ;
+        n++;
+      }
     }
     if (this.dyn.size) {
       for (const d of this.dyn.values()) {
@@ -563,10 +586,71 @@ export class World {
     return this.boxFree(x - r, y + 0.02, z - r, x + r, y + height, z + r);
   }
 
+  /** Does anything of this opening block movement or bullets (a shut door or a barricade with planks left)? */
   openingSolid(op: Opening): boolean {
-    if (op.barricadeHp > 0) return true;
-    if (op.kind === 'window') return false;
-    return !op.open && !op.destroyed;
+    return op.barricadeHp > 0 || this.doorShut(op);
+  }
+
+  /** The door leaf itself is closed and in one piece. */
+  doorShut(op: Opening): boolean {
+    return op.kind === 'door' && !op.open && !op.destroyed;
+  }
+
+  private plankScratch: Aabb = { minX: 0, minY: 0, minZ: 0, maxX: 0, maxY: 0, maxZ: 0 };
+
+  /** Box of one plank. Planks run along the opening, bottom row first, and fill the depth of the wall. */
+  plankBox(op: Opening, i: number, out: Aabb): Aabb {
+    const col = i % op.plankCols;
+    const row = Math.floor(i / op.plankCols);
+    const w = SIEGE.plankSize;
+    const b = op.box;
+    out.minY = b.minY + row * w;
+    out.maxY = out.minY + w;
+    if (op.alongX) {
+      out.minX = b.minX + col * w;
+      out.maxX = out.minX + w;
+      out.minZ = b.minZ;
+      out.maxZ = b.maxZ;
+    } else {
+      out.minZ = b.minZ + col * w;
+      out.maxZ = out.minZ + w;
+      out.minX = b.minX;
+      out.maxX = b.maxX;
+    }
+    return out;
+  }
+
+  /** Centre of one plank (the middle of the wall's depth). */
+  plankCenter(op: Opening, i: number, out: { x: number; y: number; z: number }): void {
+    const pb = this.plankBox(op, i, this.plankScratch);
+    out.x = (pb.minX + pb.maxX) / 2;
+    out.y = (pb.minY + pb.maxY) / 2;
+    out.z = (pb.minZ + pb.maxZ) / 2;
+  }
+
+  /** The standing plank closest to a point (distance across the face of the barricade), or -1. */
+  nearestPlank(op: Opening, x: number, y: number, z: number): number {
+    const along = op.alongX ? x : z;
+    let best = -1;
+    let bestD = Infinity;
+    const c = { x: 0, y: 0, z: 0 };
+    for (let k = 0; k < op.planks.length; k++) {
+      if ((op.planks[k] as number) <= 0) continue;
+      this.plankCenter(op, k, c);
+      const d = Math.hypot((op.alongX ? c.x : c.z) - along, c.y - y);
+      if (d < bestD) {
+        bestD = d;
+        best = k;
+      }
+    }
+    return best;
+  }
+
+  /** Number of planks still standing. */
+  plankCount(op: Opening): number {
+    let n = 0;
+    for (const h of op.planks) if (h > 0) n++;
+    return n;
   }
 
   // -------------------------------------------------------------------------
@@ -586,14 +670,31 @@ export class World {
     let bnz = 0;
     const rn = this.rn;
 
+    let bestSub = -1;
     if (!opts?.skipOpenings) {
+      const pb = this.plankScratch;
       for (let i = 0; i < this.openings.length; i++) {
         const op = this.openings[i] as Opening;
         if (!this.openingSolid(op)) continue;
         const bx = op.box;
         const t = rayAabb(ox, oy, oz, dx, dy, dz, bx.minX, bx.minY, bx.minZ, bx.maxX, bx.maxY, bx.maxZ, bestT, rn);
-        if (t >= 0 && t < bestT) {
-          bestT = t; bestKind = HitKind.OPENING; bestId = op.id; bnx = rn.nx; bny = rn.ny; bnz = rn.nz;
+        if (t < 0 || t >= bestT) continue;
+        // planks first: a ray that slips through a hole in the barricade goes on to the door behind it
+        if (op.barricadeHp > 0) {
+          for (let k = 0; k < op.planks.length; k++) {
+            if ((op.planks[k] as number) <= 0) continue;
+            this.plankBox(op, k, pb);
+            const pt = rayAabb(ox, oy, oz, dx, dy, dz, pb.minX, pb.minY, pb.minZ, pb.maxX, pb.maxY, pb.maxZ, bestT, rn);
+            if (pt >= 0 && pt < bestT) {
+              bestT = pt; bestKind = HitKind.OPENING; bestId = op.id; bestSub = k; bnx = rn.nx; bny = rn.ny; bnz = rn.nz;
+            }
+          }
+        }
+        if (this.doorShut(op)) {
+          const dt = rayAabb(ox, oy, oz, dx, dy, dz, bx.minX, bx.minY, bx.minZ, bx.maxX, bx.maxY, bx.maxZ, bestT, rn);
+          if (dt >= 0 && dt < bestT) {
+            bestT = dt; bestKind = HitKind.OPENING; bestId = op.id; bestSub = -1; bnx = rn.nx; bny = rn.ny; bnz = rn.nz;
+          }
         }
       }
     }
@@ -603,7 +704,7 @@ export class World {
         const bx = d.box;
         const t = rayAabb(ox, oy, oz, dx, dy, dz, bx.minX, bx.minY, bx.minZ, bx.maxX, bx.maxY, bx.maxZ, bestT, rn);
         if (t >= 0 && t < bestT) {
-          bestT = t; bestKind = HitKind.DYN; bestId = d.id; bnx = rn.nx; bny = rn.ny; bnz = rn.nz;
+          bestT = t; bestKind = HitKind.DYN; bestId = d.id; bestSub = -1; bnx = rn.nx; bny = rn.ny; bnz = rn.nz;
         }
       }
     }
@@ -633,12 +734,12 @@ export class World {
         const vv = this.vox[v] as number;
         if (vv !== Vox.AIR) {
           if (vv === Vox.STATIC) {
-            if (tCur < bestT) { bestT = tCur; bestKind = HitKind.STATIC; bestId = v; bnx = lnx; bny = lny; bnz = lnz; }
+            if (tCur < bestT) { bestT = tCur; bestKind = HitKind.STATIC; bestId = v; bestSub = -1; bnx = lnx; bny = lny; bnz = lnz; }
             break;
           }
           const cid = this.cellAtVox[v] as number;
           if (!(opts?.seeThroughGlass && this.cellMat[cid] === MaterialId.GLASS)) {
-            if (tCur < bestT) { bestT = tCur; bestKind = HitKind.CELL; bestId = cid; bnx = lnx; bny = lny; bnz = lnz; }
+            if (tCur < bestT) { bestT = tCur; bestKind = HitKind.CELL; bestId = cid; bestSub = -1; bnx = lnx; bny = lny; bnz = lnz; }
             break;
           }
         }
@@ -647,7 +748,7 @@ export class World {
           const base = this.stairBase[iz * this.nx + ix] as number;
           const t = rayAabb(ox, oy, oz, dx, dy, dz, ix * TILE, base, iz * TILE, (ix + 1) * TILE, top, (iz + 1) * TILE, bestT, rn);
           if (t >= 0 && t < bestT) {
-            bestT = t; bestKind = HitKind.STAIR; bestId = -1; bnx = rn.nx; bny = rn.ny; bnz = rn.nz;
+            bestT = t; bestKind = HitKind.STAIR; bestId = -1; bestSub = -1; bnx = rn.nx; bny = rn.ny; bnz = rn.nz;
           }
         }
       } else {
@@ -675,6 +776,7 @@ export class World {
     out.ny = bny;
     out.nz = bnz;
     out.id = bestId;
+    out.sub = bestSub;
     return true;
   }
 
@@ -759,7 +861,7 @@ export class World {
       const b = op.box;
       if (b.maxX <= box.minX || b.minX >= box.maxX || b.maxZ <= box.minZ || b.minZ >= box.maxZ || b.maxY <= box.minY || b.minY >= box.maxY) continue;
       if (op.barricadeHp > 0 || (op.kind === 'door' && !op.destroyed)) {
-        op.barricadeHp = 0;
+        this.clearPlanks(op);
         if (op.kind === 'door') { op.destroyed = true; op.open = true; }
         this.markOpening(op.id);
       }
@@ -791,7 +893,23 @@ export class World {
         }
       }
     }
+    // barricades and doors in the blast: the planks nearest the centre go first
+    for (const op of this.openings) {
+      if (!this.openingSolid(op)) continue;
+      const near = this.distanceToBox(op.box, x, y, z);
+      if (near > radius) continue;
+      const power = damage * (1 - near / radius);
+      if (op.barricadeHp > 0) this.damageBarricade(op.id, x, y, z, power, radius * 0.6);
+      if (this.doorShut(op) && op.barricadeHp <= 0) this.damageDoor(op.id, power);
+    }
     return destroyed;
+  }
+
+  private distanceToBox(b: Aabb, x: number, y: number, z: number): number {
+    const dx = Math.max(b.minX - x, 0, x - b.maxX);
+    const dy = Math.max(b.minY - y, 0, y - b.maxY);
+    const dz = Math.max(b.minZ - z, 0, z - b.maxZ);
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
   reinforcePanel(id: number): boolean {
@@ -824,29 +942,75 @@ export class World {
   placeBarricade(id: number): boolean {
     const op = this.openings[id];
     if (!op || op.barricadeHp > 0 || op.destroyed) return false;
-    op.barricadeHp = SIEGE.barricadeHp;
+    op.planks = new Array<number>(op.plankCols * op.plankRows).fill(SIEGE.plankHp);
+    op.barricadeHp = op.planks.length * SIEGE.plankHp;
     if (op.kind === 'door') op.open = false;
     this.markOpening(id);
     return true;
   }
 
-  /** Damage an opening (barricade first, then the door). Returns true if something broke. */
-  damageOpening(id: number, amount: number): boolean {
+  private clearPlanks(op: Opening): void {
+    op.planks = [];
+    op.barricadeHp = 0;
+  }
+
+  /**
+   * Damage the barricade where a bullet, a kick or a blast landed. The point is in world space. Every plank
+   * whose rectangle is within `radius` of the point takes damage that fades with distance, so a bullet
+   * chews one plank (and a little of its neighbours when it lands near an edge) and a kick takes out a hand
+   * sized hole. Returns how many planks broke.
+   */
+  damageBarricade(id: number, x: number, y: number, z: number, amount: number, radius = 0): number {
     const op = this.openings[id];
-    if (!op) return false;
-    if (op.barricadeHp > 0) {
-      op.barricadeHp -= amount;
-      let broke = false;
-      if (op.barricadeHp <= 0) { op.barricadeHp = 0; broke = true; }
-      this.markOpening(id);
-      return broke;
+    if (!op || op.barricadeHp <= 0) return 0;
+    const pb = this.plankScratch;
+    const along = op.alongX ? x : z;
+    let broke = 0;
+    for (let k = 0; k < op.planks.length; k++) {
+      const hp = op.planks[k] as number;
+      if (hp <= 0) continue;
+      this.plankBox(op, k, pb);
+      const a0 = op.alongX ? pb.minX : pb.minZ;
+      const a1 = op.alongX ? pb.maxX : pb.maxZ;
+      const d = Math.hypot(Math.max(a0 - along, 0, along - a1), Math.max(pb.minY - y, 0, y - pb.maxY));
+      if (d > radius + 1e-6) continue;
+      const falloff = radius > 0 ? 1 - 0.5 * (d / radius) : 1;
+      const left = hp - amount * falloff;
+      if (left <= 0) {
+        op.planks[k] = 0;
+        broke++;
+      } else {
+        op.planks[k] = left;
+      }
     }
-    if (op.kind === 'door' && !op.destroyed) {
-      op.hp -= amount;
-      if (op.hp <= 0) { op.hp = 0; op.destroyed = true; op.open = true; this.markOpening(id); return true; }
-      this.markOpening(id);
+    if (op.planks.every((h) => h <= 0)) this.clearPlanks(op);
+    else op.barricadeHp = op.planks.reduce((a, h) => a + h, 0);
+    this.markOpening(id);
+    return broke;
+  }
+
+  /** Damage the door leaf. Returns true when it was knocked out of its frame by this call. */
+  damageDoor(id: number, amount: number): boolean {
+    const op = this.openings[id];
+    if (!op || op.kind !== 'door' || op.destroyed) return false;
+    op.hp -= amount;
+    this.markOpening(id);
+    if (op.hp <= 0) {
+      op.hp = 0;
+      op.destroyed = true;
+      op.open = true;
+      return true;
     }
     return false;
+  }
+
+  /**
+   * Apply damage where a ray hit an opening. `sub` is the plank that was hit (RayHit.sub) or -1 for the
+   * door leaf. Returns true when something broke.
+   */
+  damageOpeningAt(id: number, sub: number, x: number, y: number, z: number, amount: number, radius = 0): boolean {
+    if (sub >= 0) return this.damageBarricade(id, x, y, z, amount, radius) > 0;
+    return this.damageDoor(id, amount);
   }
 
   addDyn(d: DynSolid): void {
@@ -865,7 +1029,7 @@ export class World {
     for (const op of this.openings) {
       if (op.floor !== floor) continue;
       if (kind && op.kind !== kind) continue;
-      if (op.kind === 'door' && op.destroyed) continue;
+      if (op.kind === 'door' && op.destroyed && op.barricadeHp <= 0) continue;
       // closest point on the box in XZ
       const cx = Math.max(op.box.minX, Math.min(x, op.box.maxX));
       const cz = Math.max(op.box.minZ, Math.min(z, op.box.maxZ));
@@ -964,7 +1128,12 @@ export class World {
   private openingDiff(id: number): OpeningDiff {
     const op = this.openings[id] as Opening;
     const flags = (op.open ? 1 : 0) | (op.destroyed ? 2 : 0) | (op.barricadeHp > 0 ? 4 : 0);
-    return [id, flags, Math.round(op.hp), Math.round(op.barricadeHp)];
+    // one digit per plank: 0 gone, 1 to 9 how much is left (the clients only draw them)
+    let planks = '';
+    if (op.barricadeHp > 0) {
+      for (const h of op.planks) planks += h <= 0 ? '0' : String(Math.max(1, Math.min(9, Math.ceil((9 * h) / SIEGE.plankHp))));
+    }
+    return [id, flags, Math.round(op.hp), planks];
   }
 
   /** Changes since the last flush, or null when nothing changed. */
@@ -1010,13 +1179,23 @@ export class World {
       }
       this.onCell?.(id);
     }
-    for (const [id, flags, hp, bhp] of d.o) {
+    for (const [id, flags, hp, planks] of d.o) {
       const op = this.openings[id];
       if (!op) continue;
       op.open = (flags & 1) !== 0;
       op.destroyed = (flags & 2) !== 0;
       op.hp = hp;
-      op.barricadeHp = (flags & 4) !== 0 ? Math.max(bhp, 1) : 0;
+      if ((flags & 4) !== 0) {
+        const n = op.plankCols * op.plankRows;
+        op.planks = new Array<number>(n);
+        for (let k = 0; k < n; k++) {
+          const digit = k < planks.length ? planks.charCodeAt(k) - 48 : 9;
+          op.planks[k] = digit <= 0 ? 0 : (digit * SIEGE.plankHp) / 9;
+        }
+        op.barricadeHp = op.planks.reduce((a, h) => a + h, 0);
+      } else {
+        this.clearPlanks(op);
+      }
       this.onOpening?.(id);
     }
   }

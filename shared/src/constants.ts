@@ -122,7 +122,13 @@ export const SIEGE = {
   reinforceCharges: 2,
   reinforceChargesWarden: 3,
   reinforceReach: 2.2,
-  barricadeHp: 150,
+  /** Barricades are a grid of planks (plankSize square, bottom row first); each has its own hit points. */
+  plankHp: 30,
+  plankSize: 0.25,
+  /** A kick wrecks the planks within this reach of where it lands. */
+  meleePlankRadius: 0.32,
+  /** Bullets also hurt planks this close to the hit, a little. */
+  bulletPlankRadius: 0.06,
   barricadeTime: 1.2,
   barricadeTimeWarden: 0.8,
   barricadeReach: 2.0,

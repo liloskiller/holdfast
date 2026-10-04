@@ -2,7 +2,7 @@
 // animated doors, barricades and the objective marker. Destruction updates single instances.
 
 import * as THREE from 'three';
-import { CELL, FLOOR_H, MaterialId, TILE, Skin, Vox, type Opening, type World } from '@holdfast/shared';
+import { CELL, FLOOR_H, MaterialId, SIEGE, TILE, Skin, Vox, type Opening, type World } from '@holdfast/shared';
 import { basicMat, disposeTree, faceShade, hash, makeWorldTexture, shadedBox } from './geo';
 
 const SKIN_COLOR: Record<number, number> = {
@@ -37,8 +37,8 @@ interface DoorView {
   panel: THREE.Mesh;
   target: number;
   angle: number;
-  barricade: THREE.Group;
-  planks: THREE.Mesh[];
+  /** First instance of this opening's planks in the shared plank mesh. */
+  plankBase: number;
 }
 
 export class WorldView {
@@ -50,8 +50,13 @@ export class WorldView {
   private slots: (CellSlot | null)[] = [];
   private metalSlot: Int32Array = new Int32Array(0);
   private doors: DoorView[] = [];
+  private plankMesh: THREE.InstancedMesh | null = null;
   private tmpM = new THREE.Matrix4();
   private tmpC = new THREE.Color();
+  private tmpQ = new THREE.Quaternion();
+  private tmpE = new THREE.Euler();
+  private tmpV = new THREE.Vector3();
+  private tmpS = new THREE.Vector3();
   private zeroM = new THREE.Matrix4().makeScale(0, 0, 0);
   private objective: THREE.Mesh | null = null;
   private objMat = new THREE.MeshBasicMaterial({ color: 0xffd23c, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide });
@@ -99,6 +104,7 @@ export class WorldView {
     disposeTree(this.group);
     this.group.clear();
     this.doors = [];
+    this.plankMesh = null;
     this.cellMeshes.clear();
     this.buildGround();
     this.buildStatic();
@@ -342,7 +348,7 @@ export class WorldView {
   // -------------------------------------------------------------------------
 
   private buildOpenings(): void {
-    const plankMat = basicMat(0x6a4a2c);
+    let plankTotal = 0;
     for (const op of this.world.openings) {
       const b = op.box;
       const span = op.alongX ? b.maxX - b.minX : b.maxZ - b.minZ;
@@ -351,7 +357,7 @@ export class WorldView {
       if (op.kind === 'door') {
         const pivot = new THREE.Group();
         const panelGeo = op.alongX ? shadedBox(span - 0.03, 2.0, 0.12) : shadedBox(0.12, 2.0, span - 0.03);
-        const panel = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ color: 0x8a6035, vertexColors: true }));
+        const panel = new THREE.Mesh(panelGeo, new THREE.MeshBasicMaterial({ color: 0x5e4026, vertexColors: true }));
         if (op.alongX) {
           pivot.position.set(b.minX + 0.015, b.minY, op.cz);
           panel.position.set((span - 0.03) / 2, 1.0, 0);
@@ -369,25 +375,18 @@ export class WorldView {
         view.panel = panel;
       }
 
-      // barricade planks over the opening
-      const bar = new THREE.Group();
-      const planks: THREE.Mesh[] = [];
-      const h = b.maxY - b.minY;
-      for (let i = 0; i < 4; i++) {
-        const plank = new THREE.Mesh(op.alongX ? shadedBox(span + 0.06, 0.2, 0.14) : shadedBox(0.14, 0.2, span + 0.06), plankMat);
-        plank.position.set(0, ((i + 0.5) / 4) * h - h / 2, 0);
-        plank.rotation[op.alongX ? 'z' : 'x'] = (i % 2 === 0 ? 1 : -1) * 0.04 * (op.alongX ? 1 : -1);
-        bar.add(plank);
-        planks.push(plank);
-      }
-      bar.position.set(op.cx, (b.minY + b.maxY) / 2, op.cz);
-      bar.visible = false;
-      this.group.add(bar);
-      view.barricade = bar;
-      view.planks = planks;
+      view.plankBase = plankTotal;
+      plankTotal += op.plankCols * op.plankRows;
       this.doors.push(view as DoorView);
-      this.openingChanged(op.id);
     }
+    // every barricade plank in the building is one instance of a single mesh
+    const mesh = new THREE.InstancedMesh(shadedBox(1, 1, 1), new THREE.MeshBasicMaterial({ vertexColors: true }), Math.max(1, plankTotal));
+    mesh.frustumCulled = false;
+    for (let i = 0; i < plankTotal; i++) mesh.setMatrixAt(i, this.zeroM);
+    mesh.setColorAt(0, this.tmpC.setHex(0xffffff));
+    this.plankMesh = mesh;
+    this.group.add(mesh);
+    for (const op of this.world.openings) this.openingChanged(op.id);
   }
 
   private openingChanged(id: number): void {
@@ -398,11 +397,47 @@ export class WorldView {
       d.pivot.visible = !op.destroyed;
       d.target = op.open ? (op.alongX ? -1.55 : 1.55) : 0;
     }
-    const hp = op.barricadeHp;
-    d.barricade.visible = hp > 0;
-    d.planks.forEach((p, i) => {
-      p.visible = hp > i * 35 || i === 0;
-    });
+    this.updatePlanks(d);
+  }
+
+  /** Put every plank of one opening in place (or hide it), tinted darker the more it is beaten up. */
+  private updatePlanks(d: DoorView): void {
+    const mesh = this.plankMesh;
+    if (!mesh) return;
+    const op = d.op;
+    const w = 0.25;
+    const total = op.plankCols * op.plankRows;
+    const b = op.box;
+    const q = this.tmpQ;
+    const m = this.tmpM;
+    for (let k = 0; k < total; k++) {
+      const i = d.plankBase + k;
+      const hp = op.planks[k] ?? 0;
+      if (hp <= 0) {
+        mesh.setMatrixAt(i, this.zeroM);
+        continue;
+      }
+      const col = k % op.plankCols;
+      const row = Math.floor(k / op.plankCols);
+      const h = ((k * 2654435761 + op.id * 40503) >>> 0) / 4294967296;
+      const along = (op.alongX ? b.minX : b.minZ) + (col + 0.5) * w;
+      const y = b.minY + (row + 0.5) * w;
+      // a slight tilt and a small shift per plank so the barricade looks nailed up by hand
+      this.tmpE.set(0, 0, (h - 0.5) * 0.12);
+      q.setFromEuler(this.tmpE);
+      this.tmpV.set(op.alongX ? along : op.cx, y, op.alongX ? op.cz : along);
+      this.tmpS.set(op.alongX ? w * 0.93 : 0.14, w * 0.82, op.alongX ? 0.14 : w * 0.93);
+      if (!op.alongX) {
+        this.tmpE.set((h - 0.5) * 0.12, 0, 0);
+        q.setFromEuler(this.tmpE);
+      }
+      m.compose(this.tmpV, q, this.tmpS);
+      mesh.setMatrixAt(i, m);
+      const ratio = Math.min(1, hp / SIEGE.plankHp);
+      this.tmpC.setHex(0xc89c5c).multiplyScalar((0.5 + 0.5 * ratio) * (0.88 + 0.24 * h));
+      mesh.setColorAt(i, this.tmpC);
+    }
+    this.dirty.add(mesh);
   }
 
   private buildObjective(): void {

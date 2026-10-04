@@ -618,6 +618,8 @@ function steer(room: Room, p: Player, m: BotMind, now: number, wish: Wish): void
   }
 }
 
+const plankTmp = { x: 0, y: 0, z: 0 };
+
 function doorWork(room: Room, p: Player, m: BotMind, now: number, wx: number, wz: number, wish: Wish): void {
   const s = p.state;
   const len = Math.hypot(wx, wz);
@@ -625,7 +627,7 @@ function doorWork(room: Room, p: Player, m: BotMind, now: number, wx: number, wz
   const fx = wx / len;
   const fz = wz / len;
   const door = room.world.findOpeningNear(s.x, s.y, s.z, fx, fz, 1.5, 'door');
-  if (!door || door.destroyed) {
+  if (!door || (door.destroyed && door.barricadeHp <= 0)) {
     m.tapTicks = 0;
     return;
   }
@@ -637,12 +639,21 @@ function doorWork(room: Room, p: Player, m: BotMind, now: number, wx: number, wz
       m.repathAt = now + 2;
       return;
     }
-    // face it and kick until it breaks
-    m.faceX = door.cx;
-    m.faceZ = door.cz;
-    m.faceY = s.y + 1.1;
+    // face the plank nearest to where the chest is and kick until nothing is left (a hole in the middle
+    // would send the kick on to the door behind it)
+    const k = room.world.nearestPlank(door, s.x, s.y + 1.1, s.z);
+    if (k >= 0) room.world.plankCenter(door, k, plankTmp);
+    else { plankTmp.x = door.cx; plankTmp.y = s.y + 1.1; plankTmp.z = door.cz; }
+    m.faceX = plankTmp.x;
+    m.faceZ = plankTmp.z;
+    m.faceY = plankTmp.y;
     m.facing = true;
-    if (now >= m.meleeAt) {
+    // only kick once the view is on the plank, or the kick lands in the hole and hits the door behind it
+    const dx = plankTmp.x - s.x;
+    const dz = plankTmp.z - s.z;
+    const onYaw = Math.abs(wrapAngle(Math.atan2(-dx, -dz) - m.yaw)) < 0.04;
+    const onPitch = Math.abs(Math.atan2(plankTmp.y - eyeY(p), Math.hypot(dx, dz)) - m.pitch) < 0.07;
+    if (onYaw && onPitch && now >= m.meleeAt) {
       m.meleeAt = now + SIEGE.meleeCooldown + 0.05;
       wish.buttons |= Btn.MELEE;
     }

@@ -96,15 +96,46 @@ describe('siege mechanics', () => {
     feed(room, def.p, { buttons: Btn.INTERACT, yaw: EAST }, 5);
     feed(room, def.p, { buttons: 0, yaw: EAST }, 3);
     expect(door.open).toBe(false);
-    // kicking it takes it down: 150 hp / 40 per kick
+    // a kick breaks the planks where it lands, not the whole barricade
     place(def.p, 8, 0, 12, EAST);
     const atk = [...room.players.values()].find((p) => p.team === 0)!;
     place(atk, 13.1, 0, 8.5, EAST);
-    for (let i = 0; i < 5; i++) {
-      feed(room, atk, { buttons: Btn.MELEE, yaw: EAST }, 1);
-      feed(room, atk, { buttons: 0, yaw: EAST }, 45);
+    const before = room.world.plankCount(door);
+    feed(room, atk, { buttons: Btn.MELEE, yaw: EAST }, 1);
+    feed(room, atk, { buttons: 0, yaw: EAST }, 45);
+    const after = room.world.plankCount(door);
+    expect(after).toBeLessThan(before);
+    expect(after).toBeGreaterThan(before - 14);
+    expect(door.barricadeHp).toBeGreaterThan(0);
+    // the planks around the chest height are the ones that went
+    const hole = door.planks.map((h, i) => (h <= 0 ? i : -1)).filter((i) => i >= 0);
+    const rows = new Set(hole.map((i) => Math.floor(i / door.plankCols)));
+    expect(Math.max(...rows) - Math.min(...rows)).toBeLessThanOrEqual(3);
+  });
+
+  it('bullets punch holes in a barricade where they land and the hole lets bullets through', () => {
+    const { room, atk, def } = house();
+    const door = room.world.findOpeningNear(13.2, 0, 8.5, 1, 0, 1.8, 'door')!;
+    expect(room.world.placeBarricade(door.id)).toBe(true);
+    const total = door.planks.length;
+    // the attacker stands west of the door, 3 m back, aiming at the middle of it
+    place(atk.p, door.box.minX - 3, 0, door.cz, EAST);
+    place(def.p, door.box.maxX + 2, 0, door.cz, WEST);
+    const dy = door.box.minY + 1.0 - (atk.p.state.y + 1.65);
+    const pitch = Math.atan2(dy, 3.25);
+    const aim = { yaw: EAST, pitch, spread: 0 };
+    for (let i = 0; i < 6; i++) shoot(room, atk.p, i, WeaponId.CARBINE, room.time, aim);
+    const gone = door.planks.map((h, i) => (h <= 0 ? i : -1)).filter((i) => i >= 0);
+    expect(gone.length).toBeGreaterThanOrEqual(1);
+    expect(gone.length).toBeLessThan(total / 3);
+    // all of the holes are around the aim point, none at the top or bottom of the door
+    const c = { x: 0, y: 0, z: 0 };
+    for (const i of gone) {
+      room.world.plankCenter(door, i, c);
+      expect(Math.hypot(c.z - door.cz, c.y - (door.box.minY + 1.0))).toBeLessThan(0.5);
     }
-    expect(door.barricadeHp).toBe(0);
+    expect(door.barricadeHp).toBeGreaterThan(0);
+    expect(door.destroyed).toBe(false);
   });
 
   it('Ram breaches a reinforced wall with a charge', () => {
