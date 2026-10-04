@@ -124,6 +124,24 @@ Key ideas:
 - **Anti wallhack:** every snapshot is filtered per recipient. Enemies you cannot see (and have not tagged) are simply not in your network traffic. Sounds out of line of sight arrive with a jittered position.
 - **Practice mode** runs the same `Room` class in the browser through a loopback transport (`client/src/net/Connection.ts`), which is why the server's `engine.ts` has no Node imports.
 
+## Hosting it online
+
+The game has two parts with different hosting needs:
+
+| Part | What it is | Where it can run |
+|---|---|---|
+| Client (menu, solo Practice, PWA) | Static files in `client/dist` | Anywhere static: Vercel, Netlify, Cloudflare Pages, GitHub Pages |
+| Server (rooms, multiplayer) | A long running Node process holding WebSockets and a 60 Hz loop | A host that runs a normal always-on process or container: Fly.io, Railway, Render, a VPS (Hetzner), or your own machine behind a tunnel |
+
+Vercel, Netlify and similar serverless platforms cannot run the server (functions are short lived and cannot keep a match alive), so **do not put the whole game on Vercel and expect multiplayer to work**: the page would load and Practice would run, but CREATE ROOM and JOIN would fail.
+
+The simplest setup is one container that serves both the client and the WebSocket on one URL, because the client connects to whatever host it was loaded from:
+
+- **Container host (Fly.io, Railway, Render, ...):** create a service from this repository using `deploy/Dockerfile`, set the health check path to `/health`, and let the platform provide HTTPS. The server listens on `$PORT` (8080 in the image) on all interfaces. Rooms live in memory, so a restart ends running matches, and a platform that sleeps idle services makes the first visitor wait for it to wake.
+- **Free and instant, from your own computer:** `npm run build && npm start`, then `cloudflared tunnel --url http://localhost:8787`. It prints a real `https://....trycloudflare.com` link to share, and it works while your computer is on.
+
+Status: `npm start` serving the client and `/health` was checked locally, and the build and tests run in CI. The Docker image and the specific hosting platforms have not been exercised from here.
+
 ## Deploying (Hetzner behind Cloudflare)
 
 `deploy/Dockerfile` builds and runs the server and client in one image; `deploy/holdfast.service` is a systemd unit if you prefer running on the host. Put Cloudflare in front with WebSockets enabled and "Always use HTTPS". The game sends protocol level pings every 15 seconds, well inside Cloudflare's idle timeout. `/health` returns `{"ok":true}`. A manual GitHub Actions deploy template lives in `.github/workflows/deploy.yml`.
