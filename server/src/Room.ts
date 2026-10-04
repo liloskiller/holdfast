@@ -13,6 +13,7 @@ import { processInputs } from './systems/movementSystem';
 import { startMatch, updateRound, onPlayerLeft, applyPick, sandboxStart, spawnRoundPlayer } from './systems/roundSystem';
 import { updateGadgets } from './systems/gadgetSystem';
 import { updateThrowables } from './systems/throwSystem';
+import { updateOperatorGadgets } from './systems/opGadgets';
 import { markSpot } from './systems/markSystem';
 import { buildSnapshot } from './systems/visibilitySystem';
 import { debugCommand } from './systems/destructionSystem';
@@ -451,6 +452,7 @@ export class Room {
     processInputs(this);
     updateGadgets(this);
     updateThrowables(this);
+    updateOperatorGadgets(this);
     updateRound(this);
     for (const p of this.players.values()) p.pushHistory(this.time);
 

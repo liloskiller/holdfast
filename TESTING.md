@@ -46,6 +46,12 @@ Targets: desktop Chrome, Android Chrome, iPhone Safari in the browser, iPhone Sa
 - [ ] Impact grenade explodes on first contact: tears a hole in plaster, breaks barricade planks and doors, hurts people nearby
 - [ ] Barbed wire: slows and nicks only the other team. Proximity alarm: the first attacker near it is marked for the defenders for 3 s, then it is used up
 
+### Later operators
+- [ ] Burn: aim at a reinforced wall or hatch, G sticks a charge, 3 s later it burns a walkable hole (reinforced or not) and scorches anyone close
+- [ ] Rush: G is a 5 s speed boost with healing, footsteps get louder meanwhile; the second shot works after it ends
+- [ ] Nitro: G throws a cell that sticks where it lands (enemies can see it), G again blows it up and hurts and wrecks everything around it
+- [ ] Patch: G sets a med station, teammates within 2.5 m heal until it runs out, the other team gets nothing
+
 ### Team markers
 - [ ] Middle click (or Y, or the PING button on a phone) puts a diamond on what you look at for you and your teammates only: blue on a wall or floor, red when you hit an enemy. It shows the distance, sticks to the screen border when out of view and fades after 7 s. Works from the drone camera too
 

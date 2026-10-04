@@ -65,7 +65,8 @@ export class OperatorSelect {
     this.lastKey = key;
 
     clear(this.grid);
-    for (const op of OPERATORS.filter((o) => o.side === this.side)) {
+    // the recruit (always available) goes last
+    for (const op of OPERATORS.filter((o) => o.side === this.side).sort((a, b) => Number(!a.unique) - Number(!b.unique))) {
       const taken = takenBy.get(op.id);
       const card = el('button', 'op-card' + (op.id === this.selected ? ' sel' : '') + (taken ? ' taken' : ''), undefined, this.grid);
       card.type = 'button';

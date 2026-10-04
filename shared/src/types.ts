@@ -314,6 +314,11 @@ export const EntityKind = {
   SMOKE: 8,
   WIRE: 9,
   ALARM: 10,
+  /** A burn charge counting down on a wall. */
+  BURNER: 11,
+  /** A nitro cell, in flight or stuck. */
+  NITRO: 12,
+  STATION: 13,
 } as const;
 export type EntityKind = (typeof EntityKind)[keyof typeof EntityKind];
 

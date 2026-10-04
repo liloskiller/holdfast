@@ -426,7 +426,7 @@ export function updateGadgets(room: Room): void {
 
     if (p.healLeft > 0) {
       const h = Math.min(p.healLeft, p.healRate * dt);
-      s.hp = Math.min(100 + (p.op === OperatorId.AEGIS ? 10 : 0), s.hp + h);
+      s.hp = Math.min(100 + operatorDef(p.op).hpBonus, s.hp + h);
       p.healLeft -= h;
     }
 

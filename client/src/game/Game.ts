@@ -322,7 +322,7 @@ export class Game {
       case 'kill': {
         const kt = this.playerTeam(ev.killer);
         const vt = this.playerTeam(ev.victim);
-        const cause = ev.w === KillCause.MELEE ? 'Melee' : ev.w === KillCause.BREACH ? 'Breach charge' : ev.w === KillCause.TRAP ? 'Trap' : ev.w === KillCause.FALL ? 'Fall' : ev.w === KillCause.BOMB ? 'Defuser blast' : ev.w === KillCause.GRENADE ? 'Grenade' : ev.w === KillCause.WIRE ? 'Barbed wire' : weaponDef(ev.w).name;
+        const cause = ev.w === KillCause.MELEE ? 'Melee' : ev.w === KillCause.BREACH ? 'Breach charge' : ev.w === KillCause.TRAP ? 'Trap' : ev.w === KillCause.FALL ? 'Fall' : ev.w === KillCause.BOMB ? 'Defuser blast' : ev.w === KillCause.GRENADE ? 'Grenade' : ev.w === KillCause.WIRE ? 'Barbed wire' : ev.w === KillCause.NITRO ? 'Nitro cell' : ev.w === KillCause.BURN ? 'Burn charge' : weaponDef(ev.w).name;
         hud.killEntry(
           this.playerName(ev.killer), this.playerName(ev.victim), cause, ev.head,
           ev.killer === this.myId, ev.killer ? this.cssColor(this.teamColor(kt)) : '#aaa', this.cssColor(this.teamColor(vt)),
@@ -957,7 +957,7 @@ export class Game {
     const op = operatorDef(this.extra.op);
     m.alive = s.alive;
     m.hp = s.hp;
-    m.maxHp = 100 + (op.id === 3 ? 10 : 0);
+    m.maxHp = 100 + op.hpBonus;
     m.weaponName = def.name;
     m.ammo = s.slot === 0 ? s.ammo0 : s.ammo1;
     m.reserve = s.slot === 0 ? s.res0 : s.res1;

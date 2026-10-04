@@ -135,6 +135,31 @@ export class EntityViews {
         extra.push(led);
         break;
       }
+      case EntityKind.BURNER: {
+        g.add(box(0.22, 0.28, 0.08, 0x4a4f55, 0, 0, 0));
+        g.add(box(0.14, 0.1, 0.03, 0x1b1d20, 0, 0.04, 0.05));
+        const glow = box(0.1, 0.1, 0.05, 0xff8a1a, 0, -0.04, 0.07);
+        g.add(glow);
+        extra.push(glow);
+        break;
+      }
+      case EntityKind.NITRO: {
+        g.add(box(0.2, 0.2, 0.07, 0x30343a, 0, 0, 0));
+        g.add(box(0.14, 0.14, 0.02, 0x6b7076, 0, 0, 0.04));
+        const led = box(0.04, 0.04, 0.03, 0x2aa8ff, 0.05, 0.05, 0.06);
+        g.add(led);
+        extra.push(led);
+        break;
+      }
+      case EntityKind.STATION: {
+        g.add(box(0.5, 0.3, 0.32, 0xe9eef2, 0, 0.15, 0));
+        g.add(box(0.12, 0.24, 0.02, 0x2fd06a, 0, 0.17, 0.17));
+        g.add(box(0.24, 0.1, 0.02, 0x2fd06a, 0, 0.17, 0.17));
+        const light = box(0.06, 0.04, 0.06, 0x2fd06a, 0.18, 0.33, 0);
+        g.add(light);
+        extra.push(light);
+        break;
+      }
       case EntityKind.GRENADE: {
         const tint = e.a === ThrowKind.FRAG ? 0x56633a : e.a === ThrowKind.FLASH ? 0xc9ced4 : e.a === ThrowKind.SMOKE ? 0x8d8f91 : 0xc2452d;
         const body = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.13, 8), basicMat(tint));
@@ -265,6 +290,17 @@ export class EntityViews {
           break;
         case EntityKind.ALARM:
           for (const l of v.extra) l.visible = Math.floor(this.time * 2) % 2 === 0;
+          break;
+        case EntityKind.BURNER:
+          g.rotation.y = e.b;
+          for (const l of v.extra) l.visible = Math.floor(this.time * 9) % 3 !== 0;
+          break;
+        case EntityKind.NITRO:
+          g.rotation.y = e.b;
+          for (const l of v.extra) l.visible = Math.floor(this.time * 3) % 2 === 0;
+          break;
+        case EntityKind.STATION:
+          for (const l of v.extra) l.visible = Math.floor(this.time * 1.5) % 2 === 0;
           break;
         case EntityKind.GRENADE:
           for (const b of v.extra) {

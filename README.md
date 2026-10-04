@@ -96,10 +96,14 @@ If someone's connection drops, they keep their slot: a 3 second grace period bef
 | Ping | Attack | Pulse sensor (heartbeats through walls) |
 | Mend | Attack | Heal darts |
 | Aegis | Attack | Deployable shield, 110 HP |
+| Burn | Attack | Burn charge (burns a person sized hole through any wall or hatch after 3 seconds) |
+| Rush | Attack | Stim shots (5 seconds of 30 percent speed and some healing) |
 | Warden | Defend | Extra reinforcement, faster building |
 | Snare | Defend | Spike traps |
 | Jam | Defend | Signal jammers |
 | Eye | Defend | Security cameras |
+| Nitro | Defend | Nitro cell (sticks where it lands, press again to blow it up) |
+| Patch | Defend | Med station (heals teammates close by) |
 | Recruit | Both | No gadget, always available |
 
 ## Weapons and gunplay

@@ -209,7 +209,10 @@ function detonate(room: Room, e: Entity, owner: Player | null): void {
   }
 }
 
-function blast(room: Room, owner: Player | null, x: number, y: number, z: number, radius: number, damage: number, wallRadius: number, wallDamage: number): void {
+export function blast(
+  room: Room, owner: Player | null, x: number, y: number, z: number, radius: number, damage: number, wallRadius: number, wallDamage: number,
+  cause: number = KillCause.GRENADE,
+): void {
   for (const o of room.players.values()) {
     const os = o.state;
     if (os.dDeployed && (!owner || o.team !== owner.team)) {
@@ -230,12 +233,12 @@ function blast(room: Room, owner: Player | null, x: number, y: number, z: number
     os.vx += (dx / l) * 4 * f;
     os.vz += (dz / l) * 4 * f;
     if (!owner || o === owner || o.team !== owner.team || room.settings.friendlyFire) {
-      applyDamage(room, o, owner, Math.round(damage * f), false, KillCause.GRENADE);
+      applyDamage(room, o, owner, Math.round(damage * f), false, cause);
     }
   }
   // gadgets nearby: shields take the blast, traps and cameras are wrecked
   for (const g of [...room.entities.values()]) {
-    if (g.kind === EntityKind.GRENADE || g.kind === EntityKind.SMOKE || g.kind === EntityKind.BOMB) continue;
+    if (g.kind === EntityKind.GRENADE || g.kind === EntityKind.SMOKE || g.kind === EntityKind.BOMB || g.kind === EntityKind.NITRO) continue;
     const d = Math.hypot(g.x - x, g.y - y, g.z - z);
     if (d > wallRadius * 1.6) continue;
     if (g.dynId >= 0 || g.maxHp > 0) damageEntity(room, g, damage * (1 - d / (wallRadius * 1.6)));

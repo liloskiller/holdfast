@@ -131,7 +131,7 @@ export function buildSnapshot(room: Room, viewer: Player, diff: WorldDiff | null
     if (!include) continue;
     entities.push({
       id: e.id, kind: e.kind, team: e.team, owner: e.owner, x: e.x, y: e.y, z: e.z,
-      a: e.a, hp: e.hp, b: e.kind === EntityKind.CAMERA ? e.b : e.kind === EntityKind.BREACH ? Math.atan2(e.nx, e.nz) : 0,
+      a: e.a, hp: e.hp, b: e.kind === EntityKind.CAMERA ? e.b : e.kind === EntityKind.BREACH || e.kind === EntityKind.BURNER || e.kind === EntityKind.NITRO ? Math.atan2(e.nx, e.nz) : 0,
     });
   }
   for (const o of room.players.values()) {

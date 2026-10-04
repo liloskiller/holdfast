@@ -203,7 +203,7 @@ function setupState(room: Room, p: Player, spawn: SpawnPoint | { x: number; y: n
   s.ads = false;
   s.vault = 0;
   s.alive = true;
-  s.hp = PLAYER.maxHp + (def.id === 3 ? 10 : 0);
+  s.hp = PLAYER.maxHp + def.hpBonus;
   s.slow = 0;
   s.cam = false;
   s.dCtl = false;
@@ -227,6 +227,7 @@ function setupState(room: Room, p: Player, spawn: SpawnPoint | { x: number; y: n
   p.droneCd = 0;
   p.tagCd = 0;
   p.sensorT = 0;
+  p.stimT = 0;
   p.healLeft = 0;
   p.meleeCd = 0;
   p.charges = [];

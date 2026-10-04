@@ -68,6 +68,8 @@ export class Player {
   droneCd = 0;
   tagCd = 0;
   sensorT = 0;
+  /** Seconds of stim speed left. */
+  stimT = 0;
   healLeft = 0;
   healRate = 0;
   meleeCd = 0;

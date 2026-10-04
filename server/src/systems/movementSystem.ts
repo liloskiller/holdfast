@@ -6,6 +6,7 @@ import type { Player } from '../Player';
 import { applyDamage, melee, shoot } from './combatSystem';
 import { processInteract } from './destructionSystem';
 import { useThrowable } from './throwSystem';
+import { useOperatorGadget } from './opGadgets';
 import { cycleCamera, destroyDrone, droneButton, droneTag, useGadget } from './gadgetSystem';
 import { spawnRoundPlayer } from './roundSystem';
 
@@ -57,7 +58,7 @@ function applyCmd(room: Room, p: Player, cmd: InputCmd): void {
   processInteract(room, p, cmd, out);
 
   if (out.meleePressed && !s.dCtl && !s.cam && s.vault <= 0) melee(room, p);
-  if (out.gadgetPressed && !s.dCtl && !s.cam && s.vault <= 0) useGadget(room, p);
+  if (out.gadgetPressed && !s.dCtl && !s.cam && s.vault <= 0 && !useOperatorGadget(room, p)) useGadget(room, p);
   if (out.throwPressed) useThrowable(room, p);
   if (out.cameraPressed && !s.dCtl) cycleCamera(room, p);
   if (out.dronePressed) droneButton(room, p, out.droneToggled);
@@ -72,6 +73,7 @@ function applyCmd(room: Room, p: Player, cmd: InputCmd): void {
       p.stepDist = 0;
       let radius = s.sprint ? 8 : 4;
       if (p.op === OperatorId.SNARE) radius *= 0.5;
+      if (p.stimT > 0) radius *= 1.5;
       room.sound('step', s.x, s.y + 0.1, s.z, radius, p.id, p.team);
     }
   } else if (speed < 0.5) {

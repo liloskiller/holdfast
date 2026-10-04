@@ -165,6 +165,8 @@ export const KillCause = {
   BOMB: 44,
   GRENADE: 45,
   WIRE: 46,
+  NITRO: 47,
+  BURN: 48,
 } as const;
 
 export type FireMode = 'auto' | 'semi' | 'burst';
