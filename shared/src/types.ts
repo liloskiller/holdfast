@@ -19,8 +19,8 @@ export const Btn = {
   MELEE: 1 << 7,
   DRONE: 1 << 8,
   ADS: 1 << 9,
-  UP: 1 << 10,
-  DOWN: 1 << 11,
+  UP: 1 << 10, // hop (drone only)
+  DOWN: 1 << 11, // unused, kept so the wire format stays stable
   CAMERA: 1 << 12,
 } as const;
 

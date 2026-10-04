@@ -62,11 +62,11 @@ Notes:
 | Use (door, vault, hold to reinforce or barricade) | E | USE |
 | Gadget | F | GADGET |
 | Drone / camera | X / Z | DRONE / CAM |
-| Drone up / down | Space / C | UP / DOWN |
+| Drone hop | Space | HOP |
 | Scoreboard / pause | Tab / Esc | SCORE / II |
 | Practice tools | B blast, N reinforce, M reset, K refill | Pause menu |
 
-Tap E near a **broken window** to vault through it. **Hold E** facing a marked wall panel to reinforce it (defenders, prep only) or facing a door or window to barricade it. Drone: FIRE tags the enemy in your crosshair so your team sees them through walls for 8 seconds.
+Tap E near a **broken window** to vault through it. **Hold E** facing a marked wall panel to reinforce it (defenders, prep only) or facing a door or window to barricade it. Drone: a small RC car that drives on the floor (WASD, mouse to look), rolls over tiny lips and **hops** (Space) about knee high to get over low furniture and up stairs. It cannot fly, cannot pass one metre furniture, and a hard fall damages it. FIRE tags the enemy in your crosshair so your team sees them through walls for 8 seconds.
 
 ## How a match works
 

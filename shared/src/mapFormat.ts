@@ -1,6 +1,6 @@
 // ASCII map format parser. See PLAN.md section 5.8 for the legend.
 
-import { FLOOR_H, TILE } from './constants';
+import { DRONE, FLOOR_H, TILE } from './constants';
 
 export const LEGEND = '.#WPBRgDdhcsSfFAYOx';
 
@@ -276,7 +276,7 @@ export function parseMap(text: string): MapData {
     if (!m) throw new MapError(`Bad drone line: ${line}`);
     const tx = Number(m[2]);
     const tz = Number(m[3]);
-    map.droneSpawns.push({ name: m[1] as string, floor: 0, tx, tz, x: (tx + 0.5) * TILE, y: 1.2, z: (tz + 0.5) * TILE });
+    map.droneSpawns.push({ name: m[1] as string, floor: 0, tx, tz, x: (tx + 0.5) * TILE, y: DRONE.halfH + 0.01, z: (tz + 0.5) * TILE });
   }
   for (const line of header['camera'] ?? []) {
     const m = /^(\S+)\s+(\d+)\s+(\d+)\s+(\d+)$/.exec(line);

@@ -308,8 +308,7 @@ select.input { appearance: none; }
 .t-switch { --w: calc(var(--u) * 1.1); --x: calc(var(--u) * 5.5); --y: calc(var(--u) * 1.65); }
 .t-drone { --w: calc(var(--u) * 1.15); --x: calc(var(--u) * 0.25); --y: calc(var(--u) * 4.1); border-color: #6dff9f; font-size: calc(var(--u) * 0.2); }
 .t-cam { --w: calc(var(--u) * 1.0); --x: calc(var(--u) * 1.6); --y: calc(var(--u) * 4.2); border-color: #7fb0ff; }
-.t-up { --w: calc(var(--u) * 1.4); --x: calc(var(--u) * 2.5); --y: calc(var(--u) * 2.3); }
-.t-down { --w: calc(var(--u) * 1.4); --x: calc(var(--u) * 2.5); --y: calc(var(--u) * 0.4); }
+.t-up { --w: calc(var(--u) * 1.5); --x: calc(var(--u) * 2.5); --y: calc(var(--u) * 1.6); }
 .t-small { width: calc(var(--u) * 1.1); height: calc(var(--u) * 0.7); border-radius: 10px; font-size: calc(var(--u) * 0.2); top: calc(var(--safe-t) + 8px); }
 .t-score { left: calc(var(--safe-l) + 8px); }
 .t-pause { right: calc(var(--safe-r) + 8px); }

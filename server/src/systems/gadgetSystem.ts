@@ -290,7 +290,7 @@ export function deployDronesForPrep(room: Room): void {
     s.dDeployed = true;
     s.dCtl = false;
     s.dx = spot ? spot.x : s.x;
-    s.dy = spot ? spot.y : s.y + 1.2;
+    s.dy = spot ? spot.y : s.y + DRONE.halfH + 0.01;
     s.dz = spot ? spot.z : s.z;
     s.dvx = 0;
     s.dvy = 0;
@@ -312,11 +312,14 @@ export function droneButton(room: Room, p: Player, toggled: boolean): void {
     room.msg('Drone ready in ' + Math.ceil(p.droneCd) + 's', p.id);
     return;
   }
+  // the drone is set down on the floor just in front of the operator (or at their feet if that is blocked)
   const [dx, , dz] = look(p);
+  const w = DRONE.halfW;
+  const h = DRONE.halfH;
+  const y = s.y + h + 0.02;
   let x = s.x + dx * 0.7;
   let z = s.z + dz * 0.7;
-  const y = s.y + eyeHeight(s) - 0.35;
-  if (!room.world.boxFree(x - 0.15, y - 0.15, z - 0.15, x + 0.15, y + 0.15, z + 0.15)) {
+  if (!room.world.boxFree(x - w, y - h, z - w, x + w, y + h, z + w)) {
     x = s.x;
     z = s.z;
   }
@@ -339,13 +342,14 @@ export function droneTag(room: Room, p: Player): void {
   }
   const s = p.state;
   const [dx, dy, dz] = look(p);
+  const eyeY = s.dy + DRONE.camUp;
   let maxT = 40;
-  if (room.world.raycast(s.dx, s.dy, s.dz, dx, dy, dz, maxT, hit, { seeThroughGlass: true })) maxT = hit.t;
+  if (room.world.raycast(s.dx, eyeY, s.dz, dx, dy, dz, maxT, hit, { seeThroughGlass: true })) maxT = hit.t;
   let target: Player | null = null;
   for (const o of room.players.values()) {
     if (o.team === p.team || !o.state.alive) continue;
     const os = o.state;
-    const t = rayAabb(s.dx, s.dy, s.dz, dx, dy, dz, os.x - 0.4, os.y, os.z - 0.4, os.x + 0.4, os.y + 1.9, os.z + 0.4, maxT);
+    const t = rayAabb(s.dx, eyeY, s.dz, dx, dy, dz, os.x - 0.4, os.y, os.z - 0.4, os.x + 0.4, os.y + 1.9, os.z + 0.4, maxT);
     if (t >= 0 && t < maxT) {
       maxT = t;
       target = o;

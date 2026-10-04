@@ -1,7 +1,7 @@
 // Hitscan with server side lag compensation, damage, melee and death.
 
 import {
-  HITBOX, HitKind, MAX_PELLETS, MaterialId, NET, PLAYER, SIEGE, WEAPONS, buildShotRays, damageFor,
+  DRONE, HITBOX, HitKind, MAX_PELLETS, MaterialId, NET, PLAYER, SIEGE, WEAPONS, buildShotRays, damageFor,
   eyeHeight, makeRayHit, operatorDef, rayAabb, raySphere, weaponDef,
   type RayHit,
 } from '@holdfast/shared';
@@ -100,7 +100,7 @@ export function shoot(room: Room, shooter: Player, shotIdx: number, weaponId: nu
       }
       for (const o of room.players.values()) {
         if (o.team === shooter.team || !o.state.dDeployed) continue;
-        const td = raySphere(cx, cy, cz, dx, dy, dz, o.state.dx, o.state.dy, o.state.dz, 0.22, bestT);
+        const td = raySphere(cx, cy, cz, dx, dy, dz, o.state.dx, o.state.dy, o.state.dz, DRONE.hitRadius, bestT);
         if (td >= 0 && td < bestT) {
           bestT = td; bestPlayer = null; bestDrone = o; bestEntity = null;
         }

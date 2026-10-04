@@ -18,7 +18,6 @@ export class KeyboardMouse {
   private locked = false;
   /** ?nolock lets automated tests drive the game without a real pointer lock. */
   private forceLock = new URLSearchParams(location.search).has('nolock');
-  private cHeld = false;
 
   constructor(private input: InputState, private canvas: HTMLElement, private hooks: KeyboardHooks) {
     document.addEventListener('keydown', (e) => this.onKey(e, true));
@@ -63,7 +62,6 @@ export class KeyboardMouse {
 
   private releaseAll(): void {
     this.keys.clear();
-    this.cHeld = false;
     this.input.moveX = 0;
     this.input.moveZ = 0;
     this.input.held = 0;
@@ -100,13 +98,10 @@ export class KeyboardMouse {
         inp.setHeld(Btn.SPRINT, down);
         break;
       case 'KeyC':
-        this.cHeld = down;
         if (down) inp.crouchToggle = !inp.crouchToggle;
-        inp.setHeld(Btn.DOWN, down);
         break;
       case 'ControlLeft': case 'ControlRight':
         inp.setHeld(Btn.CROUCH, down);
-        inp.setHeld(Btn.DOWN, down || this.cHeld);
         e.preventDefault();
         break;
       case 'Space':

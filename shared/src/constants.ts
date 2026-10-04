@@ -39,11 +39,24 @@ export const PLAYER = {
   adsMoveMul: 0.6,
 } as const;
 
+// The attacker drone is a small wheeled RC car, not a flyer: it drives on the floor, falls with gravity,
+// rolls over tiny lips and can hop (about 0.6 m) to get onto low furniture or up stair steps.
+// Its position (dx, dy, dz) is the centre of the chassis.
 export const DRONE = {
-  radius: 0.15,
-  speed: 3.0,
-  vertSpeed: 2.2,
-  accel: 14,
+  halfW: 0.2, // half footprint of the chassis
+  halfH: 0.12, // half height of the chassis
+  camUp: 0.07, // the camera sits this far above the centre
+  hitRadius: 0.26, // bullets use a slightly generous sphere
+  speed: 2.7,
+  accel: 16,
+  decel: 24,
+  airControl: 0.35,
+  gravity: 18,
+  terminalVel: 25,
+  hopSpeed: 4.6, // m/s upward, apex = hopSpeed^2 / (2 * gravity) = 0.59 m
+  stepUp: 0.1, // wheels roll over lips up to this high
+  fallSafe: 7, // landing faster than this (m/s) damages the drone
+  fallDamage: 5, // hp per m/s over the safe speed
   hp: 25,
   tagCooldown: 1.0,
   tagDuration: 8.0,

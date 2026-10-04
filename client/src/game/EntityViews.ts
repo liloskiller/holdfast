@@ -1,7 +1,7 @@
 // Views for placed gadgets and drones, created and removed as entities appear in snapshots.
 
 import * as THREE from 'three';
-import { COLORS, EntityKind, GADGET, type EntitySnap } from '@holdfast/shared';
+import { COLORS, DRONE, EntityKind, GADGET, wrapAngle, type EntitySnap } from '@holdfast/shared';
 import { basicMat, box } from './geo';
 import type { Pose } from '../net/Interpolation';
 
@@ -10,26 +10,52 @@ interface View {
   kind: EntityKind;
   extra: THREE.Object3D[];
   hp: number;
+  /** Drone only: the camera turret, plus last position and heading used to turn the chassis and spin wheels. */
+  turret?: THREE.Object3D;
+  chassis?: THREE.Object3D;
+  lx: number;
+  lz: number;
+  heading: number;
 }
 
-function droneModel(color: number): { g: THREE.Group; rotors: THREE.Object3D[] } {
-  const g = new THREE.Group();
-  g.add(box(0.2, 0.06, 0.2, 0x25282c));
-  g.add(box(0.07, 0.05, 0.07, color, 0, 0.05, 0));
-  const rotors: THREE.Object3D[] = [];
-  for (const [x, z] of [[0.16, 0.16], [-0.16, 0.16], [0.16, -0.16], [-0.16, -0.16]] as const) {
-    g.add(box(0.03, 0.03, 0.03, 0x111111, x * 0.7, 0.02, z * 0.7));
-    const r = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.1, 0.1, 0.008, 10),
-      new THREE.MeshBasicMaterial({ color: 0xcfd6dc, transparent: true, opacity: 0.45 }),
-    );
-    r.position.set(x, 0.045, z);
-    g.add(r);
-    rotors.push(r);
+let wheelGeo: THREE.CylinderGeometry | null = null;
+
+interface DroneModel {
+  g: THREE.Group;
+  wheels: THREE.Object3D[];
+  turret: THREE.Object3D;
+}
+
+/** A small wheeled RC car. The group origin is the chassis centre (DRONE.halfH above the floor). */
+function droneModel(color: number): DroneModel {
+  if (!wheelGeo) {
+    wheelGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.05, 10);
+    wheelGeo.userData['shared'] = true;
   }
-  // camera eye
-  g.add(box(0.05, 0.05, 0.05, 0x00ff88, 0, -0.02, -0.11));
-  return { g, rotors };
+  const g = new THREE.Group();
+  g.add(box(0.28, 0.06, 0.38, 0x25282c, 0, -0.03, 0));
+  g.add(box(0.2, 0.025, 0.24, color, 0, 0.012, 0.03));
+  g.add(box(0.02, 0.2, 0.02, 0x111111, 0.1, 0.11, 0.14));
+  const wheels: THREE.Object3D[] = [];
+  const tire = basicMat(0x15171a);
+  for (const [x, z] of [[0.165, 0.13], [-0.165, 0.13], [0.165, -0.13], [-0.165, -0.13]] as const) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, -DRONE.halfH + 0.07, z);
+    const m = new THREE.Mesh(wheelGeo, tire);
+    m.rotation.z = Math.PI / 2;
+    pivot.add(m);
+    // a pale stripe so the spin is visible
+    pivot.add(box(0.055, 0.02, 0.12, 0x6b7178, 0, 0, 0));
+    g.add(pivot);
+    wheels.push(pivot);
+  }
+  // camera turret on the nose (the lens points where the pilot looks)
+  const turret = new THREE.Group();
+  turret.position.set(0, 0.06, -0.1);
+  turret.add(box(0.08, 0.06, 0.08, 0x1b1e22));
+  turret.add(box(0.045, 0.045, 0.03, 0x00ff88, 0, 0, -0.045));
+  g.add(turret);
+  return { g, wheels, turret };
 }
 
 export class EntityViews {
@@ -52,12 +78,16 @@ export class EntityViews {
   private create(e: EntitySnap): View {
     const g = new THREE.Group();
     const extra: THREE.Object3D[] = [];
+    let turret: THREE.Object3D | undefined;
+    let chassis: THREE.Object3D | undefined;
     const color = this.colorFor(e.team);
     switch (e.kind) {
       case EntityKind.DRONE: {
         const m = droneModel(color);
         g.add(m.g);
-        extra.push(...m.rotors);
+        extra.push(...m.wheels);
+        turret = m.turret;
+        chassis = m.g;
         break;
       }
       case EntityKind.SHIELD: {
@@ -116,7 +146,10 @@ export class EntityViews {
         break;
     }
     this.scene.add(g);
-    return { group: g, kind: e.kind, extra, hp: e.hp };
+    const view: View = { group: g, kind: e.kind, extra, hp: e.hp, lx: e.x, lz: e.z, heading: e.a };
+    if (turret) view.turret = turret;
+    if (chassis) view.chassis = chassis;
+    return view;
   }
 
   /** Sync the set of entities with the latest snapshot, then position them from interpolated poses. */
@@ -139,9 +172,20 @@ export class EntityViews {
       g.position.set(pose.x, pose.y, pose.z);
       switch (e.kind) {
         case EntityKind.DRONE: {
-          g.rotation.y = pose.yaw;
-          for (const r of v.extra) r.rotation.y = this.time * 40;
-          g.position.y += Math.sin(this.time * 3 + e.id) * 0.01;
+          // the chassis turns toward its direction of travel, the camera turret keeps pointing where the pilot looks
+          const mx = pose.x - v.lx;
+          const mz = pose.z - v.lz;
+          const dist = Math.hypot(mx, mz);
+          v.lx = pose.x;
+          v.lz = pose.z;
+          if (dist > 0.002 && dt > 0) {
+            const want = Math.atan2(-mx, -mz);
+            v.heading += wrapAngle(want - v.heading) * Math.min(1, dt * 10);
+            const spin = dist / 0.07;
+            for (const w of v.extra) w.rotation.x -= spin;
+          }
+          if (v.chassis) v.chassis.rotation.y = v.heading;
+          if (v.turret) v.turret.rotation.y = pose.yaw - v.heading;
           // hide the drone we are looking through
           g.visible = !isPiloting(e.owner);
           break;

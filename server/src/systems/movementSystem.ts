@@ -5,7 +5,7 @@ import type { Room } from '../Room';
 import type { Player } from '../Player';
 import { melee, shoot } from './combatSystem';
 import { processInteract } from './destructionSystem';
-import { cycleCamera, droneButton, droneTag, useGadget } from './gadgetSystem';
+import { cycleCamera, destroyDrone, droneButton, droneTag, useGadget } from './gadgetSystem';
 import { spawnRoundPlayer } from './roundSystem';
 
 const out = makeStepOut();
@@ -39,6 +39,8 @@ function applyCmd(room: Room, p: Player, cmd: InputCmd): void {
   p.lastSeq = cmd.seq;
   p.lastCmdTime = cmd.clientTime;
   if (!wasAlive || !s.alive) return;
+  if (out.droneHop) room.sound('drone', s.dx, s.dy, s.dz, 6, p.id, p.team);
+  if (s.dDeployed && s.dhp <= 0) destroyDrone(room, p, null); // a hard landing broke it
 
   const eyeY = s.y + (s.crouch ? 1.15 : 1.65);
 

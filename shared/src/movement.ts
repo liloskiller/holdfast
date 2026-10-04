@@ -25,20 +25,23 @@ export interface StepOut {
   gadgetPressed: boolean;
   firePressed: boolean;
   cameraPressed: boolean;
+  /** The drone hopped this step (for sound). */
+  droneHop: boolean;
+  /** Downward speed (m/s) when the drone landed this step, else 0. */
+  droneLand: number;
 }
 
 export function makeStepOut(): StepOut {
   return {
     fired: false, shotIdx: 0, weapon: 0, reloadStarted: false, switched: false, vaultStarted: false,
     tapUse: false, droneToggled: false, dronePressed: false, meleePressed: false, gadgetPressed: false, firePressed: false,
-    cameraPressed: false,
+    cameraPressed: false, droneHop: false, droneLand: 0,
   };
 }
 
 const buf = new Float64Array(512 * BOX_STRIDE);
 const vaultTarget: VaultTarget = { x: 0, y: 0, z: 0 };
 const SKIN = PLAYER.skin;
-const DRONE_MAX_Y = 8;
 
 function height(s: PlayerState): number {
   return s.crouch ? PLAYER.heightCrouch : PLAYER.heightStand;
@@ -125,48 +128,125 @@ function confine(s: PlayerState, world: World): void {
   }
 }
 
-function stepDrone(s: PlayerState, cmd: InputCmd, world: World, dt: number): void {
-  const r = DRONE.radius;
-  const sy = Math.sin(cmd.yaw);
-  const cy = Math.cos(cmd.yaw);
-  const fx = -sy, fz = -cy;
-  const rx = cy, rz = -sy;
-  let mx = cmd.moveX;
-  let mz = cmd.moveZ;
+/** Roll the drone chassis along one horizontal axis, over lips up to DRONE.stepUp when on the ground. */
+function droneSlide(s: PlayerState, world: World, axis: 0 | 2, delta: number, canStep: boolean): number {
+  if (delta === 0) return 0;
+  const w = DRONE.halfW;
+  const h = DRONE.halfH;
+  const minX = s.dx - w, maxX = s.dx + w, minZ = s.dz - w, maxZ = s.dz + w;
+  let minY = s.dy - h, maxY = s.dy + h;
+  const sx0 = axis === 0 && delta < 0 ? minX + delta : minX;
+  const sx1 = axis === 0 && delta > 0 ? maxX + delta : maxX;
+  const sz0 = axis === 2 && delta < 0 ? minZ + delta : minZ;
+  const sz1 = axis === 2 && delta > 0 ? maxZ + delta : maxZ;
+  const n = world.queryBoxes(sx0, minY, sz0, sx1, maxY + DRONE.stepUp, sz1, buf);
+  let allowed = clipAxis(minX, minY, minZ, maxX, maxY, maxZ, axis, delta, buf, n, SKIN);
+  if (canStep && Math.abs(allowed) < Math.abs(delta) - 1e-5) {
+    const up = clipAxis(minX, minY, minZ, maxX, maxY, maxZ, 1, DRONE.stepUp, buf, n, SKIN);
+    if (up > 0.005) {
+      minY += up;
+      maxY += up;
+      const allowed2 = clipAxis(minX, minY, minZ, maxX, maxY, maxZ, axis, delta, buf, n, SKIN);
+      if (Math.abs(allowed2) > Math.abs(allowed) + 1e-4) {
+        s.dy += up;
+        allowed = allowed2;
+      }
+    }
+  }
+  if (axis === 0) s.dx += allowed;
+  else s.dz += allowed;
+  return allowed;
+}
+
+/** True when the chassis is resting on something (or about to be, within a hair). */
+function droneGrounded(s: PlayerState, world: World): boolean {
+  const w = DRONE.halfW;
+  const h = DRONE.halfH;
+  const probe = 0.04;
+  const n = world.queryBoxes(s.dx - w, s.dy - h - probe, s.dz - w, s.dx + w, s.dy + h, s.dz + w, buf);
+  const d = clipAxis(s.dx - w, s.dy - h, s.dz - w, s.dx + w, s.dy + h, s.dz + w, 1, -probe, buf, n, SKIN);
+  return d > -probe + 1e-6;
+}
+
+/**
+ * Step the RC drone: it drives on the ground relative to the view yaw, falls with gravity, rolls over
+ * small lips and hops when `hop` is pressed while on the ground. Also used (with no input) to let a
+ * parked drone settle and fall when the floor under it is destroyed.
+ */
+function stepDrone(s: PlayerState, world: World, dt: number, moveX: number, moveZ: number, yaw: number, hop: boolean, out: StepOut): void {
+  const w = DRONE.halfW;
+  const sy = Math.sin(yaw);
+  const cy = Math.cos(yaw);
+  let mx = moveX;
+  let mz = moveZ;
   const len = Math.hypot(mx, mz);
   if (len > 1) { mx /= len; mz /= len; }
-  const tx = (fx * mz + rx * mx) * DRONE.speed;
-  const tz = (fz * mz + rz * mx) * DRONE.speed;
-  const up = ((cmd.buttons & Btn.UP) !== 0 ? 1 : 0) - ((cmd.buttons & Btn.DOWN) !== 0 ? 1 : 0);
-  const ty = up * DRONE.vertSpeed;
-  const a = DRONE.accel * dt;
-  s.dvx = approachTo(s.dvx, tx, a);
-  s.dvy = approachTo(s.dvy, ty, a);
-  s.dvz = approachTo(s.dvz, tz, a);
+  const hasInput = len > 0.01;
 
-  // axis by axis clip
-  for (let ax = 0; ax < 3; ax++) {
-    const d = (ax === 0 ? s.dvx : ax === 1 ? s.dvy : s.dvz) * dt;
-    if (d === 0) continue;
-    const minX = s.dx - r, maxX = s.dx + r, minY = s.dy - r, maxY = s.dy + r, minZ = s.dz - r, maxZ = s.dz + r;
-    const n = world.queryBoxes(minX - Math.abs(d), minY - Math.abs(d), minZ - Math.abs(d), maxX + Math.abs(d), maxY + Math.abs(d), maxZ + Math.abs(d), buf);
-    const allowed = clipAxis(minX, minY, minZ, maxX, maxY, maxZ, ax as 0 | 1 | 2, d, buf, n, SKIN);
-    if (ax === 0) { s.dx += allowed; if (allowed !== d) s.dvx = 0; }
-    else if (ax === 1) { s.dy += allowed; if (allowed !== d) s.dvy = 0; }
-    else { s.dz += allowed; if (allowed !== d) s.dvz = 0; }
+  const wasGround = s.dvy <= 0.01 && droneGrounded(s, world);
+  if (hop && wasGround) {
+    s.dvy = DRONE.hopSpeed;
+    out.droneHop = true;
   }
-  // stay inside the fenced area and below a sensible ceiling
+  const grounded = wasGround && !out.droneHop;
+
+  // horizontal velocity toward the wished velocity (vector acceleration, weaker in the air)
+  const tx = (-sy * mz + cy * mx) * DRONE.speed;
+  const tz = (-cy * mz - sy * mx) * DRONE.speed;
+  const a = (hasInput ? DRONE.accel : DRONE.decel) * (grounded ? 1 : DRONE.airControl) * dt;
+  const ex = tx - s.dvx;
+  const ez = tz - s.dvz;
+  const elen = Math.hypot(ex, ez);
+  if (elen <= a || elen < 1e-9) {
+    s.dvx = tx;
+    s.dvz = tz;
+  } else {
+    s.dvx += (ex / elen) * a;
+    s.dvz += (ez / elen) * a;
+  }
+
+  const movedX = droneSlide(s, world, 0, s.dvx * dt, grounded);
+  if (Math.abs(movedX) < Math.abs(s.dvx * dt) - 1e-5) s.dvx = 0;
+  const movedZ = droneSlide(s, world, 2, s.dvz * dt, grounded);
+  if (Math.abs(movedZ) < Math.abs(s.dvz * dt) - 1e-5) s.dvz = 0;
+
+  // vertical: stay glued to the ground over small drops, otherwise fall
+  const h = DRONE.halfH;
+  if (grounded) {
+    const n = world.queryBoxes(s.dx - w, s.dy - h - DRONE.stepUp, s.dz - w, s.dx + w, s.dy + h, s.dz + w, buf);
+    const drop = clipAxis(s.dx - w, s.dy - h, s.dz - w, s.dx + w, s.dy + h, s.dz + w, 1, -DRONE.stepUp, buf, n, SKIN);
+    if (drop > -DRONE.stepUp + 1e-6) {
+      s.dy += drop;
+      s.dvy = 0;
+      keepInside(s, world);
+      return;
+    }
+  }
+  s.dvy -= DRONE.gravity * dt;
+  if (s.dvy < -DRONE.terminalVel) s.dvy = -DRONE.terminalVel;
+  const dy = s.dvy * dt;
+  const n = world.queryBoxes(s.dx - w, Math.min(s.dy - h, s.dy - h + dy), s.dz - w, s.dx + w, Math.max(s.dy + h, s.dy + h + dy), s.dz + w, buf);
+  const allowed = clipAxis(s.dx - w, s.dy - h, s.dz - w, s.dx + w, s.dy + h, s.dz + w, 1, dy, buf, n, SKIN);
+  s.dy += allowed;
+  if (Math.abs(allowed - dy) > 1e-9) {
+    if (dy < 0) {
+      const impact = -s.dvy;
+      out.droneLand = impact;
+      if (impact > DRONE.fallSafe) s.dhp -= (impact - DRONE.fallSafe) * DRONE.fallDamage;
+    }
+    s.dvy = 0;
+  }
+  keepInside(s, world);
+}
+
+/** Stay inside the fenced area. */
+function keepInside(s: PlayerState, world: World): void {
+  const r = DRONE.halfW;
   const lo = TILE + r;
   const hiX = (world.nx - 1) * TILE - r;
   const hiZ = (world.nz - 1) * TILE - r;
   if (s.dx < lo) { s.dx = lo; s.dvx = 0; } else if (s.dx > hiX) { s.dx = hiX; s.dvx = 0; }
   if (s.dz < lo) { s.dz = lo; s.dvz = 0; } else if (s.dz > hiZ) { s.dz = hiZ; s.dvz = 0; }
-  if (s.dy > DRONE_MAX_Y) { s.dy = DRONE_MAX_Y; s.dvy = 0; }
-}
-
-function approachTo(v: number, target: number, maxDelta: number): number {
-  if (v < target) return Math.min(v + maxDelta, target);
-  return Math.max(v - maxDelta, target);
 }
 
 /** Advance one fixed step. Mutates `s`. */
@@ -182,6 +262,8 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
   out.gadgetPressed = false;
   out.firePressed = false;
   out.cameraPressed = false;
+  out.droneHop = false;
+  out.droneLand = 0;
 
   const buttons = cmd.buttons;
   const prev = s.prevButtons;
@@ -226,13 +308,16 @@ export function stepPlayer(s: PlayerState, cmd: InputCmd, world: World, dt: numb
     out.droneToggled = true;
   }
 
+  // A parked drone still obeys gravity (it falls if the floor under it is destroyed).
+  if (s.dDeployed && !s.dCtl) stepDrone(s, world, dt, 0, 0, 0, false, out);
+
   if (s.dCtl) {
     // Body stands still while piloting the drone.
     s.vx = 0;
     s.vz = 0;
     s.sprint = false;
     s.ads = false;
-    stepDrone(s, cmd, world, dt);
+    stepDrone(s, world, dt, cmd.moveX, cmd.moveZ, cmd.yaw, (pressed & Btn.UP) !== 0, out);
     snapOrFall(s, world, s.onGround, dt);
     return;
   }

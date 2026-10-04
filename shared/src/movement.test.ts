@@ -2,11 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { Btn, stateToArray } from './types';
+import { Btn, stateToArray, type PlayerState } from './types';
+import { DRONE, SIM_DT } from './constants';
+import { makeStepOut, stepPlayer } from './movement';
 import { arenaMapText } from './testMap';
 import { parseMap } from './mapFormat';
 import { Vox, World } from './world';
-import { run, spawnState } from './testUtil';
+import { cmdFor, run, spawnState } from './testUtil';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const safehouse = parseMap(fs.readFileSync(path.join(here, '..', 'maps', 'safehouse.map.txt'), 'utf8'));
@@ -156,18 +158,143 @@ describe('stepPlayer', () => {
     expect(inside).toBe(false);
   });
 
-  it('drone flies, collides with walls and does not move the body', () => {
-    const w = arena();
-    const s = spawnState(5, 0, 5, -Math.PI / 2);
-    s.dDeployed = true;
-    s.dx = 5; s.dy = 1.5; s.dz = 5;
-    run(s, w, 2, { buttons: Btn.DRONE });
-    expect(s.dCtl).toBe(true);
-    run(s, w, 180, { moveZ: 1, buttons: 0 });
-    expect(s.dx).toBeGreaterThan(8);
-    expect(s.x).toBe(5);
-    s.dx = 5;
-    run(s, w, 800, { moveZ: 1, yaw: Math.PI / 2 });
-    expect(s.dx).toBeGreaterThanOrEqual(0.5 + 0.15 - 1e-6);
+  describe('drone (grounded RC car)', () => {
+    const lipBox = (id: number, minX: number, maxX: number, h: number): Parameters<World['addDyn']>[0] => ({
+      id, hp: 1, maxHp: 1, team: 0, kind: 0, vaultable: false, blocksMove: true,
+      box: { minX, minY: 0, minZ: 4, maxX, maxY: h, maxZ: 8 },
+    });
+    const deploy = (w: World, x = 5, y: number = DRONE.halfH + 0.01, z = 5): PlayerState => {
+      const s = spawnState(5, 0, 5, -Math.PI / 2); // faces +x
+      s.dDeployed = true;
+      s.dx = x; s.dy = y; s.dz = z;
+      run(s, w, 2, { buttons: Btn.DRONE });
+      return s;
+    };
+
+    it('toggles control, drives on the floor and does not move the body', () => {
+      const w = arena();
+      const s = deploy(w);
+      expect(s.dCtl).toBe(true);
+      run(s, w, 120, { moveZ: 1, buttons: 0 });
+      expect(s.dx).toBeGreaterThan(8);
+      expect(s.dy).toBeCloseTo(DRONE.halfH, 2); // still rolling on the floor
+      expect(Math.hypot(s.dvx, s.dvz)).toBeCloseTo(DRONE.speed, 1);
+      expect(s.x).toBe(5);
+    });
+
+    it('falls to the floor under gravity and cannot fly', () => {
+      const w = arena();
+      const s = deploy(w, 5, 1.5, 5);
+      run(s, w, 90, {});
+      expect(s.dy).toBeCloseTo(DRONE.halfH, 2);
+      // holding every vertical button does nothing but a hop
+      run(s, w, 60, { buttons: Btn.DOWN });
+      expect(s.dy).toBeCloseTo(DRONE.halfH, 2);
+    });
+
+    it('collides with the arena fence', () => {
+      const w = arena();
+      const s = deploy(w);
+      run(s, w, 800, { moveZ: 1, yaw: Math.PI / 2 });
+      expect(s.dx).toBeGreaterThanOrEqual(0.5 + DRONE.halfW - 1e-6);
+    });
+
+    it('hops about 0.6 m, once per press, and not while airborne', () => {
+      const w = arena();
+      const s = deploy(w);
+      const floorY = s.dy;
+      let apex = floorY;
+      let hops = 0;
+      const out = makeStepOut();
+      // press once, keep it held: only one hop
+      for (let i = 0; i < 90; i++) {
+        stepPlayer(s, cmdFor(s, { buttons: Btn.UP }), w, SIM_DT, out);
+        if (out.droneHop) hops++;
+        apex = Math.max(apex, s.dy);
+      }
+      expect(hops).toBe(1);
+      expect(apex - floorY).toBeGreaterThan(0.5);
+      expect(apex - floorY).toBeLessThan(0.65);
+      expect(s.dy).toBeCloseTo(floorY, 2);
+      // a second press in mid air does nothing
+      run(s, w, 1, { buttons: 0 });
+      run(s, w, 1, { buttons: Btn.UP });
+      run(s, w, 6, { buttons: 0 });
+      const h1 = s.dy;
+      run(s, w, 1, { buttons: Btn.UP });
+      run(s, w, 1, { buttons: 0 });
+      expect(s.dvy).toBeLessThan(DRONE.hopSpeed - 0.5);
+      expect(h1).toBeGreaterThan(floorY);
+    });
+
+    it('rolls over a tiny lip, is stopped by a taller one, and hops onto it', () => {
+      const w = arena();
+      w.addDyn(lipBox(900, 8, 8.5, 0.08)); // within the wheels' step up
+      const a = deploy(w);
+      run(a, w, 150, { moveZ: 1 });
+      expect(a.dx).toBeGreaterThan(9);
+
+      const w2 = arena();
+      w2.addDyn(lipBox(901, 8, 8.5, 0.4));
+      const b = deploy(w2);
+      run(b, w2, 150, { moveZ: 1 });
+      expect(b.dx).toBeLessThan(8 - DRONE.halfW + 0.01); // blocked by the ledge
+
+      // drive up to it and hop: it gets on top
+      const c = deploy(w2);
+      run(c, w2, 60, { moveZ: 1 });
+      for (let i = 0; i < 120; i++) run(c, w2, 1, { moveZ: 1, buttons: i % 40 === 0 ? Btn.UP : 0 });
+      expect(c.dx).toBeGreaterThan(9);
+    });
+
+    it('cannot get over a one metre piece of furniture', () => {
+      const w = arena();
+      const s = deploy(w, 7.5, DRONE.halfH + 0.01, 3.4); // furniture tile 18,6..7 spans x 9..9.5, z 3..4
+      for (let i = 0; i < 240; i++) run(s, w, 1, { moveZ: 1, buttons: i % 40 === 0 ? Btn.UP : 0 });
+      expect(s.dx).toBeLessThan(9 - DRONE.halfW + 0.01);
+    });
+
+    it('is damaged by a hard fall but not by a small drop', () => {
+      const w = arena();
+      const hi = deploy(w, 5, 3.0, 5);
+      hi.dhp = DRONE.hp;
+      run(hi, w, 120, {});
+      expect(hi.dhp).toBeLessThan(DRONE.hp - 5);
+      const lo = deploy(w, 5, 0.6, 7);
+      lo.dhp = DRONE.hp;
+      run(lo, w, 60, {});
+      expect(lo.dhp).toBe(DRONE.hp);
+    });
+
+    it('a parked drone settles on the floor too', () => {
+      const w = arena();
+      const s = spawnState(5, 0, 5);
+      s.dDeployed = true; s.dCtl = false;
+      s.dx = 7; s.dy = 1.2; s.dz = 7;
+      run(s, w, 90, {});
+      expect(s.dy).toBeCloseTo(DRONE.halfH, 2);
+      expect(s.dx).toBeCloseTo(7, 3);
+    });
+
+    it('can hop its way up the stairs of the Safehouse', () => {
+      const w = new World(safehouse);
+      const st = safehouse.stairs[0]!;
+      // start at the bottom of the stairs, facing the climbing direction
+      const s = spawnState(5, 0, 5);
+      s.dDeployed = true;
+      const tz = (st.z0 + st.z1 + 1) / 4;
+      s.dx = (st.x0 - 3) * 0.5; s.dy = DRONE.halfH + 0.01; s.dz = tz;
+      run(s, w, 2, { buttons: Btn.DRONE });
+      let up = 0;
+      let hops = 0;
+      for (let i = 0; i < 60 * 40 && s.dy < 2.5; i++) {
+        const out = makeStepOut();
+        stepPlayer(s, cmdFor(s, { moveZ: 1, yaw: -Math.PI / 2, buttons: i % 20 === 0 ? Btn.UP : 0 }), w, SIM_DT, out);
+        if (out.droneHop) hops++;
+        up = Math.max(up, s.dy);
+      }
+      expect(hops).toBeGreaterThan(2);
+      expect(up).toBeGreaterThan(2.5); // reached the upper floor
+    });
   });
 });

@@ -28,8 +28,7 @@ const DEFS: BtnDef[] = [
   { id: 'switch', label: 'SWAP', btn: 0, mode: 'tap', cls: 't-switch', ctx: 'body' },
   { id: 'drone', label: 'DRONE', btn: Btn.DRONE, mode: 'tap', cls: 't-drone' },
   { id: 'cam', label: 'CAM', btn: Btn.CAMERA, mode: 'tap', cls: 't-cam', ctx: 'body' },
-  { id: 'up', label: 'UP', btn: Btn.UP, mode: 'hold', cls: 't-up', ctx: 'drone' },
-  { id: 'down', label: 'DOWN', btn: Btn.DOWN, mode: 'hold', cls: 't-down', ctx: 'drone' },
+  { id: 'up', label: 'HOP', btn: Btn.UP, mode: 'tap', cls: 't-up', ctx: 'drone' },
 ];
 
 export interface TouchHooks {

@@ -32,6 +32,7 @@ Targets: desktop Chrome, Android Chrome, iPhone Safari in the browser, iPhone Sa
 - [ ] Teams, ready, host settings, start
 - [ ] Operator select shows taken operators, timer runs out gracefully
 - [ ] Prep: attackers cannot enter the house, drone works, defenders reinforce and barricade
+- [ ] Drone: drives on the floor, hops with Space (about knee high), cannot climb a one metre table, can hop up the stairs, a long fall damages it
 - [ ] Action: objective capture, kills, spectating after death, round end screen, side swap, match end
 - [ ] Late join spectates; leaving mid round ends the round if it was the last player on a team
 - [ ] Kill the wifi for 10 seconds on one phone: the game reconnects with the same slot

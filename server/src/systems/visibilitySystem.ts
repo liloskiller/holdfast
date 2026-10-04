@@ -2,7 +2,7 @@
 // legitimately know them (line of sight, tag, or very close), which also cuts bandwidth.
 
 import {
-  EntityKind, NET, PFlag, stateToArray, makeExtra, eyeHeight, PhaseId,
+  DRONE, EntityKind, NET, PFlag, stateToArray, makeExtra, eyeHeight, PhaseId,
   type EntitySnap, type GameEvent, type PlayerSnap, type SelfExtra, type Snapshot, type WorldDiff,
 } from '@holdfast/shared';
 import type { Player } from '../Player';
@@ -29,7 +29,7 @@ function viewTarget(room: Room, viewer: Player): Player {
 
 function eyeOf(room: Room, p: Player): Eye {
   const s = p.state;
-  if (s.dCtl) return { x: s.dx, y: s.dy, z: s.dz };
+  if (s.dCtl) return { x: s.dx, y: s.dy + DRONE.camUp, z: s.dz };
   if (s.cam && p.camIdx >= 0) {
     const e = room.entities.get(p.cameras[p.camIdx] ?? -1);
     if (e) return { x: e.x, y: e.y, z: e.z };

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { Btn, EntityKind, OperatorId, PFlag, PhaseId, WeaponId } from '@holdfast/shared';
+import { Btn, DRONE, EntityKind, OperatorId, PFlag, PhaseId, WeaponId } from '@holdfast/shared';
 import { shoot } from './systems/combatSystem';
 import { buildSnapshot } from './systems/visibilitySystem';
 import { addHuman, feed, forceAction, makeRoom, place } from './testUtil';
@@ -173,10 +173,11 @@ describe('information warfare', () => {
     const s = atk.p.state;
     s.dDeployed = true;
     s.dCtl = true;
-    s.dx = 3.0; s.dy = 1.5; s.dz = 8.5;
-    // the drone looks in through the window glass and tags the defender
-    feed(room, atk.p, { buttons: 0, yaw: EAST, pitch: 0 }, 2);
-    feed(room, atk.p, { buttons: Btn.FIRE, yaw: EAST, pitch: 0 }, 1);
+    s.dhp = DRONE.hp;
+    // the drone rolls on the floor, in the same room as the defender, and tags him
+    s.dx = 9.0; s.dy = DRONE.halfH + 0.01; s.dz = 8.5;
+    feed(room, atk.p, { buttons: 0, yaw: WEST, pitch: 0 }, 2);
+    feed(room, atk.p, { buttons: Btn.FIRE, yaw: WEST, pitch: 0 }, 1);
     expect(def.p.isTaggedFor(0, room.time)).toBe(true);
     expect(def.p.isTaggedFor(1, room.time)).toBe(false);
     const tagEvents = atk.conn.msgs.filter((m) => m.t === 'SNAP' && m.snap.events.some((e) => e.k === 'tag'));
@@ -330,10 +331,10 @@ describe('gadgets', () => {
     room.phase = PhaseId.ACTION;
     const s = atk.p.state;
     s.dDeployed = true;
-    s.dx = 6; s.dy = 1.3; s.dz = 8.5;
+    s.dx = 6; s.dy = DRONE.halfH + 0.01; s.dz = 8.5;
     s.dhp = 25;
     place(def.p, 12, 0, 8.5, WEST);
-    def.p.state.pitch = Math.atan2(1.3 - 1.65, 6);
+    def.p.state.pitch = Math.atan2(DRONE.halfH - 1.65, 6);
     def.p.state.ads = true;
     shoot(room, def.p, 0, WeaponId.CARBINE, room.time);
     expect(s.dDeployed).toBe(false);

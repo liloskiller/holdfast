@@ -226,6 +226,15 @@ const GENERATORS: Record<string, Gen> = {
     return mix(n, notes.map((f) => [mul(osc(n, sr, () => f, 'saw'), expEnv(n, sr, 300)), 0.16] as [Float32Array, number]), notes.map((_, i) => Math.floor(sr * i * 0.14)));
   },
   empty: (sr) => tone(sr, 40, 300, 14, 0.3),
+  // RC drone: a spring and servo chirp for the hop, a plastic thud for the landing
+  drone: (sr) => {
+    const n = Math.floor(sr * 0.22);
+    return mix(n, [[mul(osc(n, sr, (t) => 170 + t * 1100), expEnv(n, sr, 26)), 0.4], [mul(lowpass(noise(n), 900, sr), expEnv(n, sr, 40)), 0.4]]);
+  },
+  drone_land: (sr) => {
+    const n = Math.floor(sr * 0.2);
+    return mix(n, [[mul(osc(n, sr, (t) => 95 * Math.exp(-t * 14) + 50), expEnv(n, sr, 40)), 0.8], [mul(highpass(noise(n), 2200, sr), expEnv(n, sr, 55)), 0.45]]);
+  },
 };
 
 export type SoundName = keyof typeof GENERATORS | string;
@@ -369,7 +378,7 @@ export class GameAudio {
     this.play(name, { gain });
   }
 
-  /** Continuous drone propeller hum while piloting. */
+  /** Continuous RC drone motor whine while piloting. setHumLevel(0..1) follows the drone's speed. */
   setHum(on: boolean): void {
     const ctx = this.ctx;
     if (!ctx) return;
@@ -377,14 +386,14 @@ export class GameAudio {
       const o1 = ctx.createOscillator();
       const o2 = ctx.createOscillator();
       o1.type = 'sawtooth';
-      o2.type = 'sawtooth';
-      o1.frequency.value = 138;
-      o2.frequency.value = 141.5;
+      o2.type = 'triangle';
+      o1.frequency.value = 90;
+      o2.frequency.value = 270;
       const g = ctx.createGain();
-      g.gain.value = 0.035;
+      g.gain.value = 0.012;
       const f = ctx.createBiquadFilter();
       f.type = 'lowpass';
-      f.frequency.value = 600;
+      f.frequency.value = 520;
       o1.connect(f);
       o2.connect(f);
       f.connect(g);
@@ -398,6 +407,16 @@ export class GameAudio {
       this.hum.gain.disconnect();
       this.hum = null;
     }
+  }
+
+  setHumLevel(level: number): void {
+    const h = this.hum;
+    const ctx = this.ctx;
+    if (!h || !ctx) return;
+    const t = ctx.currentTime;
+    h.osc.frequency.setTargetAtTime(90 + level * 90, t, 0.06);
+    h.osc2.frequency.setTargetAtTime(270 + level * 270, t, 0.06);
+    h.gain.gain.setTargetAtTime(0.012 + level * 0.03, t, 0.06);
   }
 
   setHeart(on: boolean): void {

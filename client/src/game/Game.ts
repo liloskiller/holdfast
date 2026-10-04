@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import {
-  COLORS, GameMode, MaterialId, PFlag, PhaseId, SIM_DT, Btn, EntityKind, HitKind,
+  COLORS, DRONE, GameMode, MaterialId, PFlag, PhaseId, SIM_DT, Btn, EntityKind, HitKind,
   activeWeapon, activeWeaponId, buildShotRays, clamp, eyeHeight, lerp, makeCmd, makeRayHit, makeStepOut, operatorDef,
   parseMap, quantizeCmd, raySphere, rayAabb, stateFromArray, wrapAngle, World, weaponDef, MAX_PELLETS, PLAYER,
   type ClientMsg, type GameEvent, type InputCmd, type PhaseInfo, type RoomState, type SelfExtra,
@@ -96,6 +96,8 @@ export class Game {
   private sensePts: { x: number; y: number; z: number; born: number }[] = [];
   private senseMeshes: THREE.Mesh[] = [];
   private droneHum = false;
+  private droneBob = 0;
+  private droneRoll = 0;
   private disposed = false;
   private tagged = new Set<number>();
   private unsent: InputCmd[] = [];
@@ -543,6 +545,14 @@ export class Game {
     }
     if (out.gadgetPressed) audio.ui('gadget', 0.5);
     if (out.droneToggled) audio.ui('ui', 0.5);
+    if (out.droneHop && s.dCtl) {
+      audio.ui('drone', 0.55);
+      this.effects.shake = Math.max(this.effects.shake, 0.15);
+    }
+    if (out.droneLand > 1.5 && s.dCtl) {
+      audio.ui('drone_land', Math.min(0.8, 0.3 + out.droneLand * 0.06));
+      this.effects.shake = Math.max(this.effects.shake, Math.min(1, out.droneLand * 0.08));
+    }
   }
 
   private onLocalShot(shotIdx: number, weaponId: number): void {
@@ -683,10 +693,20 @@ export class Game {
       fp = false;
       r.setFov(this.baseVFov());
     } else if (s.dCtl) {
-      // drone view
-      ex = s.dx; ey = s.dy; ez = s.dz;
-      cam.position.set(ex, ey, ez);
-      cam.rotation.set(this.pitch, this.yaw, 0);
+      // drone view: a camera a hand's breadth above the floor that bounces along with the chassis
+      const a = this.acc / SIM_DT;
+      const p = this.pred.prev;
+      const sp = Math.hypot(s.dvx, s.dvz);
+      this.droneBob += dt * (7 + sp * 6);
+      const lateral = s.dvx * Math.cos(this.yaw) - s.dvz * Math.sin(this.yaw);
+      this.droneRoll += (-lateral * 0.025 - this.droneRoll) * Math.min(1, dt * 8);
+      const roll = clamp(this.droneRoll, -0.12, 0.12);
+      ex = lerp(p.dx, s.dx, a);
+      ey = lerp(p.dy, s.dy, a) + DRONE.camUp + Math.sin(this.droneBob) * 0.005 * Math.min(1, sp / DRONE.speed);
+      ez = lerp(p.dz, s.dz, a);
+      const sh = this.effects.shake * 0.04;
+      cam.position.set(ex + (Math.random() - 0.5) * sh, ey + (Math.random() - 0.5) * sh, ez + (Math.random() - 0.5) * sh);
+      cam.rotation.set(clamp(this.pitch, -1.5, 1.5), this.yaw, roll);
       fp = false;
       r.setFov(this.baseVFov() * 1.12);
     } else if (s.cam && this.extra.camIdx >= 0) {
@@ -745,6 +765,7 @@ export class Game {
       this.droneHum = humWanted;
       audio.setHum(humWanted);
     }
+    if (humWanted) audio.setHumLevel(Math.min(1, Math.hypot(s.dvx, s.dvz) / DRONE.speed));
 
     // sense markers
     for (let i = 0; i < this.senseMeshes.length; i++) {

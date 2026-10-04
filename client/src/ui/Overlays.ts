@@ -86,7 +86,7 @@ export class HelpScreen {
       'Mouse aim   LEFT fire   RIGHT aim   R reload   1 / 2 / Q swap weapon   V kick / melee',
       'E tap: open or close door, vault a broken window.   E hold: reinforce a marked wall (defenders, prep only) or barricade a door/window.',
       'F use gadget   X launch or enter drone   Z cycle security cameras   TAB scoreboard   ESC pause',
-      'Drone: WASD fly, SPACE up, C down, FIRE tags an enemy so your team sees them through walls.',
+      'Drone: a small RC car. WASD drive, mouse looks, SPACE hops (about knee high: over low furniture, up stairs), FIRE tags an enemy so your team sees them through walls. It can be shot, and a hard fall damages it.',
       'Practice only: B blast a hole where you look   N reinforce the panel you look at   M reset world   K refill',
     ]);
     sec('TOUCH', [

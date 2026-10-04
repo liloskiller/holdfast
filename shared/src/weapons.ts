@@ -105,7 +105,15 @@ export function dronePos(s: PlayerState, out: Vec3): Vec3 {
 }
 
 export function droneRadius(): number {
-  return DRONE.radius;
+  return DRONE.hitRadius;
+}
+
+/** Where the drone camera sits (the nose of the chassis, a little above the centre). */
+export function droneEye(s: PlayerState, out: Vec3): Vec3 {
+  out.x = s.dx;
+  out.y = s.dy + DRONE.camUp;
+  out.z = s.dz;
+  return out;
 }
 
 export function playerEyeY(s: PlayerState): number {
