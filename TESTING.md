@@ -30,6 +30,14 @@ Targets: desktop Chrome, Android Chrome, iPhone Safari in the browser, iPhone Sa
 - [ ] Easy bots are slow to react and miss a lot, hard bots are sharp but beatable; nothing hangs for a whole round
 - [ ] The match finishes (first to 3), you land back in the lobby and START MATCH plays again
 
+### Bomb mode
+- [ ] Host sets Mode to Bomb (or SOLO MATCH, MODE: BOMB). Attackers get the glowing zone marker, nothing happens when they just stand in it
+- [ ] Hold the interact key in the zone: a bar fills for 4 s, then "Defuser planted", the clock turns red and becomes a 45 s fuse, a case with a blinking light sits on the floor and beeps faster and faster
+- [ ] Defenders next to it hold interact for 7 s: "Defuser disabled", defenders win. Too far away (more than 2 m) nothing happens
+- [ ] Let the fuse run out: blast, damage to anyone close, attackers win ("Defuser detonated"), even if every attacker is dead
+- [ ] Every attacker dead before the plant: defenders win. Time runs out before the plant: defenders win
+- [ ] Bots plant when nobody is shooting at them and rush to disable it after the plant
+
 ### Combat
 - [ ] Recoil: hold fire with the Carbine, the view climbs, pulling the mouse down keeps shots on target, releasing settles it. Crosshair widens during a spray and closes when you stop.
 - [ ] ADS speed: SMG snaps up, Marksman and Anvil take noticeably longer. Reload cancels aiming.

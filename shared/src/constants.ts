@@ -162,6 +162,7 @@ export const KillCause = {
   BREACH: 41,
   TRAP: 42,
   FALL: 43,
+  BOMB: 44,
 } as const;
 
 export type FireMode = 'auto' | 'semi' | 'burst';
@@ -323,6 +324,8 @@ export const GameMode = {
   SECURE: 0,
   ELIMINATION: 1,
   SANDBOX: 2,
+  /** Attackers plant a defuser on the site, defenders disable it. */
+  BOMB: 3,
 } as const;
 export type GameMode = (typeof GameMode)[keyof typeof GameMode];
 
@@ -349,6 +352,23 @@ export const DEFAULT_SETTINGS: RoomSettings = {
   captureTime: 10,
   friendlyFire: false,
 };
+
+/** Bomb mode tuning. */
+export const BOMB = {
+  /** Seconds the defuser needs to be planted, and to be disabled. */
+  plantTime: 4,
+  defuseTime: 7,
+  /** From the plant to the blast (replaces the round timer). */
+  timer: 45,
+  /** How close a defender has to stand to disable it (m). */
+  defuseReach: 1.8,
+  /** The blast. */
+  radius: 6,
+  damage: 300,
+} as const;
+
+/** 0 no bomb yet, 1 planted and counting down, 2 disabled, 3 went off. */
+export const BombState = { NONE: 0, PLANTED: 1, DEFUSED: 2, EXPLODED: 3 } as const;
 
 export const NET = {
   maxPlayers: 10,

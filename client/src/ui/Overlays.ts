@@ -95,6 +95,7 @@ export class HelpScreen {
     sec('GOAL', [
       'One life per round. Attackers breach the house and secure the objective (hold the glowing zone for 10 seconds) or eliminate every defender.',
       'Defenders use the prep phase to reinforce walls, barricade doors and set gadgets, then hold out until time runs out.',
+      'Bomb mode: attackers hold the interact key inside the glowing zone to plant the defuser (4 seconds). Defenders must stand next to it and hold interact for 7 seconds to disable it before the 45 second fuse runs out.',
     ]);
     sec('KEYBOARD AND MOUSE', [
       'WASD move   SHIFT sprint   C crouch   Q / E lean left / right (peek around corners)   mouse wheel or 1 / 2 swap weapon',

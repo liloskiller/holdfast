@@ -22,7 +22,7 @@ function look(p: Player): [number, number, number] {
 // Entities
 // ---------------------------------------------------------------------------
 
-interface EntityInit {
+export interface EntityInit {
   kind: EntityKind;
   owner: Player;
   x: number;
@@ -38,7 +38,7 @@ interface EntityInit {
   shield?: boolean;
 }
 
-function spawnEntity(room: Room, init: EntityInit): Entity {
+export function spawnEntity(room: Room, init: EntityInit): Entity {
   const id = room.nextEntityId++;
   const e: Entity = {
     id, kind: init.kind, team: init.owner.team, owner: init.owner.id,

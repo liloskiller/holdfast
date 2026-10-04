@@ -1,13 +1,14 @@
 // Round state machine: lobby, operator select, prep, action, round end, match end.
 
 import {
-  GameMode, PhaseId, operatorDef, OPERATORS, defaultOperator, resetLoadout, PLAYER, FLOOR_H,
+  BombState, GameMode, PhaseId, operatorDef, OPERATORS, defaultOperator, resetLoadout, PLAYER, FLOOR_H,
   spreadPick, openFacing,
   type SpawnPoint, type Spot,
 } from '@holdfast/shared';
 import { Player } from '../Player';
 import type { Room } from '../Room';
 import { clearEntities, deployDronesForPrep } from './gadgetSystem';
+import { resetBomb, updateBomb } from './bombSystem';
 
 const MATCH_END_MS = 15000;
 
@@ -61,8 +62,10 @@ function startRound(room: Room): void {
   room.winnerTeam = -1;
   room.reason = '';
   room.overtime = false;
+  resetBomb(room);
   const sites = room.map.objectives.length;
-  room.objectiveIdx = room.settings.mode === GameMode.SECURE && sites > 0 ? Math.floor(room.rand() * sites) : -1;
+  const siteMode = room.settings.mode === GameMode.SECURE || room.settings.mode === GameMode.BOMB;
+  room.objectiveIdx = siteMode && sites > 0 ? Math.floor(room.rand() * sites) : -1;
 
   // drop stale players, reset picks to a valid default for the new side
   for (const p of [...room.players.values()]) {
@@ -362,10 +365,17 @@ function checkWin(room: Room, timeUp: boolean): void {
   const attAlive = room.alivePlayers(room.attackerTeam).length;
   const defAlive = room.alivePlayers(room.attackerTeam === 0 ? 1 : 0).length;
   const defTeam = room.attackerTeam === 0 ? 1 : 0;
-  if (attAlive === 0) return endRound(room, defTeam, 'Attackers eliminated');
+  const bombMode = room.settings.mode === GameMode.BOMB;
+  if (bombMode && room.bomb.state === BombState.DEFUSED) return endRound(room, defTeam, 'Defuser disabled');
+  if (bombMode && room.bomb.state === BombState.EXPLODED) return endRound(room, room.attackerTeam, 'Defuser detonated');
+  // once the defuser is down the attackers do not have to survive, the defenders have to disable it
+  const planted = bombMode && room.bomb.state === BombState.PLANTED;
+  if (attAlive === 0 && !planted) return endRound(room, defTeam, 'Attackers eliminated');
   if (defAlive === 0) return endRound(room, room.attackerTeam, 'Defenders eliminated');
   if (room.phase !== PhaseId.ACTION) return;
-  if (room.settings.mode === GameMode.SECURE) {
+  if (bombMode) {
+    if (timeUp && !planted) return endRound(room, defTeam, 'Time expired');
+  } else if (room.settings.mode === GameMode.SECURE) {
     if (room.capture >= 1) return endRound(room, room.attackerTeam, 'Objective secured');
     if (timeUp) {
       const c = objectiveCounts(room);
@@ -402,6 +412,7 @@ export function updateRound(room: Room): void {
       break;
     case PhaseId.ACTION: {
       if (room.sandbox) break;
+      updateBomb(room);
       if (room.settings.mode === GameMode.SECURE) {
         const c = objectiveCounts(room);
         const rate = 1 / Math.max(1, room.settings.captureTime);

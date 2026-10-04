@@ -12,10 +12,10 @@ import { FakeConn, forceAction, makeRoom, place } from './testUtil';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SAFEHOUSE = fs.readFileSync(path.join(here, '..', '..', 'shared', 'maps', 'safehouse.map.txt'), 'utf8');
 
-function botMatchRoom(seed: number, size = 3, difficulty = 1): ReturnType<typeof makeRoom> {
+function botMatchRoom(seed: number, size = 3, difficulty = 1, mode: GameMode = GameMode.SECURE): ReturnType<typeof makeRoom> {
   const room = makeRoom({
     map: SAFEHOUSE,
-    settings: { prepTime: 30, actionTime: 100, operatorSelectTime: 5, roundEndTime: 3, roundsToWin: 2, mode: GameMode.SECURE },
+    settings: { prepTime: 30, actionTime: 100, operatorSelectTime: 5, roundEndTime: 3, roundsToWin: 2, mode },
   });
   room.rngState = seed >>> 0;
   for (let i = 0; i < size; i++) {
@@ -84,6 +84,23 @@ describe('bots', () => {
     }
     // across the matches the objective was actually taken at least once
     expect(reasons.has('Objective secured')).toBe(true);
+  });
+
+  it('bots play bomb mode: they plant, defuse and finish the match', () => {
+    const reasons = new Set<string>();
+    for (const [seed, diff] of [[3, 1], [11, 1], [5, 2], [21, 1], [8, 0]] as const) {
+      const room = botMatchRoom(seed, 3, diff, GameMode.BOMB);
+      expect(startMatch(room)).toBeNull();
+      let ticks = 0;
+      while (room.phase !== PhaseId.MATCH_END && ticks < 60 * 60 * 14) {
+        room.advance(500);
+        ticks += 30;
+        if (room.phase === PhaseId.ROUND_END && room.reason) reasons.add(room.reason);
+      }
+      expect(room.phase, `seed ${seed}`).toBe(PhaseId.MATCH_END);
+    }
+    // somebody planted the defuser in at least one round, and it either went off or was disabled
+    expect(reasons.has('Defuser detonated') || reasons.has('Defuser disabled')).toBe(true);
   });
 
   it('defender bots reinforce walls and barricade doors during prep, attackers do not', () => {

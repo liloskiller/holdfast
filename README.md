@@ -84,7 +84,7 @@ Bots are ordinary players whose inputs are generated on the server side of the g
 
 ## How a match works
 
-`Lobby, Operator select (20 s), Prep (45 s), Action (180 s), Round end`. First team to 4 rounds wins; sides swap every 3 rounds. In **Secure Area** attackers win by holding the glowing objective zone for 10 seconds with no living defender inside, or by eliminating defenders; defenders win by eliminating attackers or running out the clock. **Elimination** is last team standing. Host settings are in the lobby.
+`Lobby, Operator select (20 s), Prep (45 s), Action (180 s), Round end`. First team to 4 rounds wins; sides swap every 3 rounds. In **Secure Area** attackers win by holding the glowing objective zone for 10 seconds with no living defender inside, or by eliminating defenders; defenders win by eliminating attackers or running out the clock. In **Bomb** attackers plant a defuser inside the zone (hold the interact key for 4 seconds) and have to protect it for 45 seconds, defenders disable it by standing next to it and holding interact for 7 seconds; once it is planted the attackers do not have to stay alive. **Elimination** is last team standing. Host settings are in the lobby.
 
 If someone's connection drops, they keep their slot: a 3 second grace period before they count as dead for the round, and they can rejoin the same room for up to 60 seconds (the game reconnects automatically; if you reload the page, tap JOIN again and you get your slot back). Players who join mid-round spectate until the next round.
 

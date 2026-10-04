@@ -181,7 +181,7 @@ export function sanitizeSettings(p: Record<string, unknown>): Partial<RoomSettin
     if (v !== null) (out as Record<string, number>)[k] = Math.round(v);
   };
   if (p['mode'] !== undefined) {
-    const v = num(p['mode'], 0, 2);
+    const v = num(p['mode'], 0, 3);
     if (v !== null) out.mode = Math.round(v) as RoomSettings['mode'];
   }
   n('roundsToWin', 1, 10);
@@ -225,8 +225,8 @@ export function decodeClient(raw: string): ClientMsg | null {
       const name = str(r['name'], 40);
       if (name === null) return null;
       const m: ClientMsg = { t: 'CREATE_ROOM', name: sanitizeName(name) };
-      const mode = num(r['mode'], 0, 2);
-      if (mode !== null) m.mode = Math.round(mode) as 0 | 1 | 2;
+      const mode = num(r['mode'], 0, 3);
+      if (mode !== null) m.mode = Math.round(mode) as 0 | 1 | 2 | 3;
       if (r['sandbox'] === true) m.sandbox = true;
       const solo = r['solo'];
       if (typeof solo === 'object' && solo !== null && !m.sandbox) {
@@ -236,6 +236,7 @@ export function decodeClient(raw: string): ClientMsg | null {
           difficulty: Math.round(num(so['difficulty'], 0, 2) ?? 1),
           side: so['side'] === 1 ? 1 : 0,
         };
+        if (num(so['mode'], 0, 3) === 3) m.solo.mode = 3;
       }
       return m;
     }

@@ -3,7 +3,7 @@
 // special senses: it sees what has line of sight inside its field of view and hears sounds that reach it.
 
 import {
-  Btn, FLOOR_H, NavGrid, OperatorId, PhaseId, SIEGE, SIM_DT, TILE, clamp, eyeHeight, makeCmd, operatorDef,
+  BombState, Btn, FLOOR_H, GameMode, NavGrid, OperatorId, PhaseId, SIEGE, SIM_DT, TILE, clamp, eyeHeight, makeCmd, operatorDef,
   quantizeCmd, wrapAngle, weaponDef, type InputCmd, type NavPath,
 } from '@holdfast/shared';
 import type { Player } from '../Player';
@@ -394,6 +394,11 @@ function decide(room: Room, p: Player, m: BotMind, now: number): void {
       if (inside) {
         m.mode = 'hold'; // capturing: stay and watch
         m.path = null;
+        // bomb mode: nobody shooting at us, so put the defuser down
+        if (room.settings.mode === GameMode.BOMB && room.bomb.state === BombState.NONE && room.phase === PhaseId.ACTION && now - m.alertT > 1.5) {
+          m.mode = 'plant';
+          return;
+        }
       } else {
         setGoal(room, p, m, site.x + (m.rng.next() - 0.5) * 2, site.y, site.z + (m.rng.next() - 0.5) * 2, now);
       }
@@ -411,6 +416,21 @@ function decide(room: Room, p: Player, m: BotMind, now: number): void {
   if (room.phase === PhaseId.PREP) {
     m.mode = 'hold';
     if (m.anchorNode >= 0) setGoalNode(room, p, m, m.anchorNode, now);
+    return;
+  }
+  if (room.settings.mode === GameMode.BOMB && room.bomb.state === BombState.PLANTED && room.phase === PhaseId.ACTION) {
+    // the defuser is down: everybody goes for it
+    const b = room.bomb;
+    if (Math.hypot(s.x - b.x, s.z - b.z) < 1.3 && Math.abs(s.y - b.y) < 1.5) {
+      m.mode = 'defuse';
+      m.faceX = b.x;
+      m.faceY = b.y;
+      m.faceZ = b.z;
+      m.path = null;
+    } else {
+      m.mode = 'move';
+      setGoal(room, p, m, b.x, b.y, b.z, now);
+    }
     return;
   }
   if (now - m.alertT < 5) {
@@ -487,7 +507,7 @@ function steer(room: Room, p: Player, m: BotMind, now: number, wish: Wish): void
 
   const fighting = m.mode === 'fight' && m.target !== null;
   const working = m.mode === 'work' && m.task !== null;
-  const holding = m.mode === 'hold';
+  const holding = m.mode === 'hold' || m.mode === 'plant' || m.mode === 'defuse';
 
   // follow the path unless holding or working
   if (!working && !holding && m.path && m.wp < m.path.n) {
@@ -694,6 +714,20 @@ function aimAndShoot(p: Player, m: BotMind, now: number, wish: Wish): void {
   const ey = eyeY(p);
   const facingTarget = m.facing;
   m.facing = false;
+
+  // planting or disabling the defuser: stand still, hold the interact button
+  if (m.mode === 'plant' || m.mode === 'defuse') {
+    wish.buttons |= Btn.INTERACT;
+    if (m.mode === 'defuse') {
+      const dx = m.faceX - s.x;
+      const dz = m.faceZ - s.z;
+      turnToward(m, Math.atan2(-dx, -dz), Math.atan2(m.faceY - ey, Math.hypot(dx, dz)), dt, 5);
+    } else {
+      turnToward(m, m.yaw, 0.15, dt, 3);
+    }
+    m.triggerHeld = false;
+    return;
+  }
 
   // working on a wall: look at it and hold the interact button
   if (m.mode === 'work' && m.task) {

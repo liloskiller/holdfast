@@ -1,6 +1,6 @@
 // A solo match: the human plus bots on both sides, started immediately.
 
-import { clamp, type SoloOptions } from '@holdfast/shared';
+import { GameMode, clamp, type SoloOptions } from '@holdfast/shared';
 import type { Player } from '../Player';
 import type { Room } from '../Room';
 import { startMatch } from '../systems/roundSystem';
@@ -11,6 +11,7 @@ export function setupSolo(room: Room, human: Player, solo: SoloOptions): string 
   const difficulty = clamp(Math.round(solo.difficulty), 0, 2);
   // shorter than a human match: first to 3, sides swap every 2 rounds
   room.settings = { ...room.settings, roundsToWin: 3, swapEvery: 2 };
+  if (solo.mode === GameMode.BOMB) room.settings.mode = GameMode.BOMB;
   human.team = solo.side === 1 ? 1 : 0;
   const enemy = human.team === 0 ? 1 : 0;
   for (let i = 0; i < size - 1; i++) addBot(room, human.team, difficulty);

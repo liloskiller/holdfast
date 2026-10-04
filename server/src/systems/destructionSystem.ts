@@ -1,16 +1,17 @@
 // Siege interactions: doors, reinforcement, barricades, and the sandbox debug commands.
 
 import {
-  Btn, GADGET, HitKind, OperatorId, PhaseId, PLAYER, SIEGE, SIM_DT, eyeHeight, makeRayHit, operatorDef,
+  BOMB, Btn, GADGET, HitKind, OperatorId, PhaseId, PLAYER, SIEGE, SIM_DT, eyeHeight, makeRayHit, operatorDef,
   type InputCmd, type RayHit, type StepOut,
 } from '@holdfast/shared';
 import type { Player } from '../Player';
 import type { Room } from '../Room';
 import { spawnRoundPlayer } from './roundSystem';
 import { clearEntities } from './gadgetSystem';
+import { canDefuse, canPlant, defuseBomb, plantBomb } from './bombSystem';
 
-export const Act = { NONE: 0, REINFORCE: 1, BARRICADE: 2 } as const;
-export const Prompt = { NONE: 0, OPEN: 1, CLOSE: 2, VAULT: 3, REINFORCE: 4, BARRICADE: 5, DETONATE: 6 } as const;
+export const Act = { NONE: 0, REINFORCE: 1, BARRICADE: 2, PLANT: 3, DEFUSE: 4 } as const;
+export const Prompt = { NONE: 0, OPEN: 1, CLOSE: 2, VAULT: 3, REINFORCE: 4, BARRICADE: 5, DETONATE: 6, PLANT: 7, DEFUSE: 8 } as const;
 
 const hit: RayHit = makeRayHit();
 
@@ -37,6 +38,8 @@ function barricadeAllowed(room: Room, p: Player): boolean {
 
 /** What would holding INTERACT start right now? */
 function findHoldTarget(room: Room, p: Player): HoldTarget | null {
+  if (canPlant(room, p)) return { kind: Act.PLANT, id: 0 };
+  if (canDefuse(room, p)) return { kind: Act.DEFUSE, id: 0 };
   const s = p.state;
   const [dx, dy, dz] = forward(p);
   const ox = s.x;
@@ -75,6 +78,8 @@ function cancelAct(p: Player): void {
 }
 
 export function actDuration(p: Player, kind: number): number {
+  if (kind === Act.PLANT) return BOMB.plantTime;
+  if (kind === Act.DEFUSE) return BOMB.defuseTime;
   const op = operatorDef(p.op);
   if (kind === Act.REINFORCE) return op.id === OperatorId.WARDEN ? SIEGE.reinforceTimeWarden : SIEGE.reinforceTime;
   return SIEGE.barricadeTime * op.buildTimeMul;
@@ -120,13 +125,21 @@ export function processInteract(room: Room, p: Player, cmd: InputCmd, out: StepO
     const before = p.actT;
     p.actT += SIM_DT;
     if (Math.floor(before / 0.4) !== Math.floor(p.actT / 0.4)) {
-      const pos = target.kind === Act.REINFORCE ? room.world.panels[target.id] : room.world.openings[target.id];
-      const px = pos ? (pos as { cx: number }).cx : s.x;
-      const pz = pos ? (pos as { cz: number }).cz : s.z;
-      room.sound(target.kind === Act.REINFORCE ? 'reinforce' : 'barricade', px, s.y + 1.2, pz, 22, p.id, p.team);
+      if (target.kind === Act.PLANT || target.kind === Act.DEFUSE) {
+        room.sound('gadget', s.x, s.y + 0.4, s.z, 16, p.id, p.team);
+      } else {
+        const pos = target.kind === Act.REINFORCE ? room.world.panels[target.id] : room.world.openings[target.id];
+        const px = pos ? (pos as { cx: number }).cx : s.x;
+        const pz = pos ? (pos as { cz: number }).cz : s.z;
+        room.sound(target.kind === Act.REINFORCE ? 'reinforce' : 'barricade', px, s.y + 1.2, pz, 22, p.id, p.team);
+      }
     }
     if (p.actT >= need) {
-      if (target.kind === Act.REINFORCE) {
+      if (target.kind === Act.PLANT) {
+        plantBomb(room, p);
+      } else if (target.kind === Act.DEFUSE) {
+        defuseBomb(room, p);
+      } else if (target.kind === Act.REINFORCE) {
         if (room.world.reinforcePanel(target.id)) {
           p.reinf--;
           room.msg('Wall reinforced', p.id);
@@ -147,6 +160,8 @@ export function computePrompt(room: Room, p: Player): number {
   if (!s.alive || s.dCtl || s.cam || s.vault > 0) return Prompt.NONE;
   if (p.charges.length > 0) return Prompt.DETONATE;
   const hold = findHoldTarget(room, p);
+  if (hold && hold.kind === Act.PLANT) return Prompt.PLANT;
+  if (hold && hold.kind === Act.DEFUSE) return Prompt.DEFUSE;
   if (hold && hold.kind === Act.REINFORCE) return Prompt.REINFORCE;
   const fx = -Math.sin(s.yaw);
   const fz = -Math.cos(s.yaw);

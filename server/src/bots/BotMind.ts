@@ -45,7 +45,7 @@ export class BotMind {
   readonly rng: Rng;
   readonly seed: number;
 
-  mode: 'move' | 'fight' | 'search' | 'work' | 'hold' | 'cautious' = 'move';
+  mode: 'move' | 'fight' | 'search' | 'work' | 'hold' | 'cautious' | 'plant' | 'defuse' = 'move';
   wantAds = false;
   wantSlot: number | undefined = undefined;
   /** Set by door work: look at (faceX, faceY, faceZ) this tick (kicking a barricade). */

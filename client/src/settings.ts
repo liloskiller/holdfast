@@ -23,6 +23,8 @@ export interface Settings {
   soloSize: number;
   soloDiff: number;
   soloSide: number;
+  /** 0 secure area, 1 bomb. */
+  soloMode: number;
 }
 
 export function isTouchDevice(): boolean {
@@ -54,6 +56,7 @@ export function defaultSettings(): Settings {
     soloSize: 3,
     soloDiff: 1,
     soloSide: 0,
+    soloMode: 0,
   };
 }
 

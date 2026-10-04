@@ -135,6 +135,16 @@ export class EntityViews {
         extra.push(led);
         break;
       }
+      case EntityKind.BOMB: {
+        // the defuser: a case with a red light that blinks as long as it counts down
+        g.add(box(0.36, 0.14, 0.24, 0x23272c, 0, 0.07, 0));
+        g.add(box(0.3, 0.02, 0.18, 0x3a4048, 0, 0.15, 0));
+        g.add(box(0.02, 0.22, 0.02, 0x111111, 0.13, 0.25, 0.06));
+        const led = box(0.07, 0.04, 0.07, 0xff2a2a, -0.08, 0.17, 0);
+        g.add(led);
+        extra.push(led);
+        break;
+      }
       case EntityKind.BREACH: {
         g.add(box(0.26, 0.2, 0.07, 0x3f4a2e, 0, 0, 0));
         const led = box(0.05, 0.05, 0.03, 0xff2a2a, 0, 0.04, 0.05);
@@ -203,6 +213,9 @@ export class EntityViews {
           break;
         case EntityKind.JAMMER:
           for (const l of v.extra) l.visible = Math.floor(this.time * 4) % 2 === 0;
+          break;
+        case EntityKind.BOMB:
+          for (const l of v.extra) l.visible = Math.floor(this.time * 5) % 2 === 0;
           break;
         default:
           break;

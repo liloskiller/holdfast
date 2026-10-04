@@ -74,6 +74,8 @@ export class Room {
   winnerTeam = -1;
   reason = '';
   overtime = false;
+  /** Bomb mode: where the defuser is and what state it is in (BombState). */
+  bomb = { state: 0 as number, x: 0, y: 0, z: 0, entity: -1, nextBeep: 0 };
   matchOver = false;
   dummySpots: { x: number; y: number; z: number; yaw: number }[] = [];
 
@@ -211,6 +213,7 @@ export class Room {
       winnerTeam: this.winnerTeam,
       reason: this.reason,
       captureProgress: this.capture,
+      bomb: this.bomb.state,
     };
   }
 

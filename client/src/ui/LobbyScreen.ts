@@ -138,7 +138,7 @@ export class LobbyScreen {
       sel.disabled = !isHost;
       sel.addEventListener('change', () => apply(Number(sel.value)));
     };
-    select('Mode', s.mode, [[GameMode.SECURE, 'Secure Area'], [GameMode.ELIMINATION, 'Elimination']], (v) => this.hooks.onSettings({ mode: v as GameMode }));
+    select('Mode', s.mode, [[GameMode.SECURE, 'Secure Area'], [GameMode.BOMB, 'Bomb'], [GameMode.ELIMINATION, 'Elimination']], (v) => this.hooks.onSettings({ mode: v as GameMode }));
     select('Rounds to win', s.roundsToWin, [1, 2, 3, 4, 5, 6, 7].map((n) => [n, String(n)] as [number, string]), (v) => this.hooks.onSettings({ roundsToWin: v }));
     select('Prep time', s.prepTime, [15, 30, 45, 60, 90].map((n) => [n, n + ' s'] as [number, string]), (v) => this.hooks.onSettings({ prepTime: v }));
     select('Action time', s.actionTime, [60, 120, 180, 240, 300].map((n) => [n, n + ' s'] as [number, string]), (v) => this.hooks.onSettings({ actionTime: v }));

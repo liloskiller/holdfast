@@ -207,6 +207,8 @@ export interface SoloOptions {
   difficulty: number;
   /** 0: you start as an attacker, 1: you start as a defender. */
   side: 0 | 1;
+  /** GameMode.SECURE or GameMode.BOMB (default secure). */
+  mode?: number;
 }
 
 export interface RoomPlayerInfo {
@@ -249,6 +251,8 @@ export interface PhaseInfo {
   winnerTeam: number; // -1 none, 0 or 1
   reason: string;
   captureProgress: number;
+  /** Bomb mode: a BombState value. */
+  bomb: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -301,6 +305,7 @@ export const EntityKind = {
   TRAP: 3,
   JAMMER: 4,
   CAMERA: 5,
+  BOMB: 6,
 } as const;
 export type EntityKind = (typeof EntityKind)[keyof typeof EntityKind];
 
@@ -321,7 +326,7 @@ export interface EntitySnap {
 
 export type SoundKind =
   | 'shot' | 'step' | 'door' | 'glass' | 'wall' | 'breach' | 'barricade' | 'reinforce'
-  | 'reload' | 'melee' | 'drone' | 'boom' | 'vault' | 'gadget' | 'metal' | 'trap' | 'ping';
+  | 'reload' | 'melee' | 'drone' | 'boom' | 'vault' | 'gadget' | 'metal' | 'trap' | 'ping' | 'beep';
 
 export type GameEvent =
   | { k: 'shot'; id: number; w: number; ox: number; oy: number; oz: number; ends: number[] }
@@ -341,7 +346,7 @@ export interface SelfExtra {
   reinf: number; // reinforcement charges left
   gadget: number; // gadget uses left
   gadgetCd: number; // seconds until gadget usable again
-  act: number; // 0 none, 1 reinforce, 2 barricade
+  act: number; // 0 none, 1 reinforce, 2 barricade, 3 plant, 4 defuse
   actP: number; // 0..1 progress
   droneCd: number;
   tagCd: number;

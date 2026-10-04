@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import {
-  COLORS, DRONE, GameMode, MaterialId, PFlag, PhaseId, SIM_DT, Btn, EntityKind, HitKind,
+  BombState, COLORS, DRONE, GameMode, MaterialId, PFlag, PhaseId, SIM_DT, Btn, EntityKind, HitKind,
   activeWeapon, activeWeaponId, buildShotRays, clamp, eyeHeight, lerp, makeCmd, makeRayHit, makeStepOut, operatorDef,
   parseMap, quantizeCmd, raySphere, rayAabb, spreadDeg, stateFromArray, wrapAngle, World, weaponDef, MAX_PELLETS, PLAYER,
   KillCause, LEAN, leanVec, type WeaponDef,
@@ -48,7 +48,7 @@ interface PingMarker {
 }
 
 const FAR_SHOT = 160;
-const PROMPTS = ['', 'F  Open door', 'F  Close door', 'F  Vault', 'Hold F  Reinforce wall', 'Hold F  Barricade', 'G  Detonate charge'];
+const PROMPTS = ['', 'F  Open door', 'F  Close door', 'F  Vault', 'Hold F  Reinforce wall', 'Hold F  Barricade', 'G  Detonate charge', 'Hold F  Plant the defuser', 'Hold F  Disable the defuser'];
 const EYE_SMOOTH = 12;
 
 export class Game {
@@ -319,7 +319,7 @@ export class Game {
       case 'kill': {
         const kt = this.playerTeam(ev.killer);
         const vt = this.playerTeam(ev.victim);
-        const cause = ev.w === KillCause.MELEE ? 'Melee' : ev.w === KillCause.BREACH ? 'Breach charge' : ev.w === KillCause.TRAP ? 'Trap' : ev.w === KillCause.FALL ? 'Fall' : weaponDef(ev.w).name;
+        const cause = ev.w === KillCause.MELEE ? 'Melee' : ev.w === KillCause.BREACH ? 'Breach charge' : ev.w === KillCause.TRAP ? 'Trap' : ev.w === KillCause.FALL ? 'Fall' : ev.w === KillCause.BOMB ? 'Defuser blast' : weaponDef(ev.w).name;
         hud.killEntry(
           this.playerName(ev.killer), this.playerName(ev.victim), cause, ev.head,
           ev.killer === this.myId, ev.killer ? this.cssColor(this.teamColor(kt)) : '#aaa', this.cssColor(this.teamColor(vt)),
@@ -968,6 +968,11 @@ export class Game {
       m.timer = ph.endsAt > 0 ? `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}` : '';
       m.timerHot = left < 10 && ph.phase === PhaseId.ACTION;
       m.phaseLabel = ph.phase === PhaseId.PREP ? 'PREP' : ph.phase === PhaseId.ACTION ? `ROUND ${ph.round}` : ph.phase === PhaseId.ROUND_END ? 'ROUND OVER' : '';
+      if (ph.phase === PhaseId.ACTION && ph.mode === GameMode.BOMB && ph.bomb === BombState.PLANTED) {
+        // the clock is the fuse now
+        m.phaseLabel = 'DEFUSER PLANTED';
+        m.timerHot = true;
+      }
       if (ph.phase === PhaseId.PREP || ph.phase === PhaseId.ACTION) {
         const sec = Math.ceil(left);
         if (sec <= 5 && sec > 0 && sec !== this.lastBeepSec) {

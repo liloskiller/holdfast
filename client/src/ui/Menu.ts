@@ -1,7 +1,7 @@
 // Main menu: name, practice, create room, join room, settings.
 
 import { settings, saveSettings } from '../settings';
-import type { SoloOptions } from '@holdfast/shared';
+import { GameMode, type SoloOptions } from '@holdfast/shared';
 import { btn, el } from './dom';
 
 export interface MenuHooks {
@@ -90,12 +90,13 @@ export class Menu {
       });
       paint();
     };
+    row('MODE', ['SECURE AREA', 'BOMB'], () => settings.soloMode, (v) => { settings.soloMode = v; });
     row('START AS', ['ATTACKER', 'DEFENDER'], () => settings.soloSide, (v) => { settings.soloSide = v; });
     row('TEAM SIZE', ['2', '3', '4', '5'], () => settings.soloSize - 2, (v) => { settings.soloSize = v + 2; });
     row('BOTS', ['EASY', 'NORMAL', 'HARD'], () => settings.soloDiff, (v) => { settings.soloDiff = v; });
     el('div', 'solo-note', 'You and your bot teammates against bots. First to 3 rounds. Works with no internet.', this.solo);
     this.buttons.push(btn('START MATCH', 'btn primary', () => this.guard(() => hooks.onSolo({
-      size: settings.soloSize, difficulty: settings.soloDiff, side: settings.soloSide === 1 ? 1 : 0,
+      size: settings.soloSize, difficulty: settings.soloDiff, side: settings.soloSide === 1 ? 1 : 0, mode: settings.soloMode === 1 ? GameMode.BOMB : GameMode.SECURE,
     })), this.solo));
   }
 
